@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: pgadmin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: freelance_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+    command: >
+      postgres
+      -c 'max_connections=50'
+      -c 'shared_buffers=128MB'
+      -c 'listen_addresses=*'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pgadmin -d freelance_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://pgadmin:secret@db:5432/freelance_db
+      - NODE_ENV=development
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
