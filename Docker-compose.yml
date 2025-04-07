@@ -35,6 +35,19 @@ services:
       - NODE_ENV=development
     restart: unless-stopped
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    stdin_open: true
+    tty: true
+    command: npm start
 volumes:
   postgres_data:
     driver: local
