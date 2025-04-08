@@ -6,4 +6,8 @@ CREATE TABLE IF NOT EXISTS login_credentials (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Puedes agregar más tablas según necesites 
+INSERT INTO login_credentials (email, password) VALUES ('jperez@gmail.com', 'donjuan217');
+INSERT INTO login_credentials (email, password) VALUES ('pablo456@gmail.com', 'hola456');
+INSERT INTO login_credentials (email, password) VALUES ('carlossanchez@icloud.com', 'donjuan217');
+INSERT INTO login_credentials (email, password) VALUES ('lauraramirez@icloud.com', 'capi789');
+INSERT INTO login_credentials (email, password) VALUES ('nbmaster@gmail.com', 'noobmaster69');
