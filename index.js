@@ -30,8 +30,8 @@ app.use((req, res, next) => {
 });
 
 // Rutas
-app.use('/api', ejemploRoutes);
-app.use('/api/login', loginRoutes);
+app.use('/api', loginRoutes);
+
 
 // Manejo de errores para rutas no encontradas
 app.use((req, res, next) => {

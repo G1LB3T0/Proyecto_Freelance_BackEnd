@@ -16,9 +16,10 @@ datasource db {
 
 model Login {
   id        Int      @id @default(autoincrement())
-  email     String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(100)
   password  String   @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("login_credentials")
 }
+
