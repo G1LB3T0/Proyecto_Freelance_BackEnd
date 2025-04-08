@@ -43,3 +43,8 @@ ENV NODE_ENV=production
 
 # Comando para iniciar la aplicación
 CMD ["node", "index.js"]
+
+
+# tengo que agregar prisma al dockerfile. 
+
+
