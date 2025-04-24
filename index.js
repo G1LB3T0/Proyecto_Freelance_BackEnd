@@ -5,6 +5,7 @@ require('dotenv').config();
 // Importación de rutas
 const ejemploRoutes = require('./src/routes/ejemplo.routes');
 const loginRoutes = require('./src/routes/login.routes');
+const registerRoutes = require('./src/routes/register.routes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -31,7 +32,7 @@ app.use((req, res, next) => {
 
 // Rutas
 app.use('/api', loginRoutes);
-
+app.use('/register', registerRoutes);
 
 // Manejo de errores para rutas no encontradas
 app.use((req, res, next) => {
