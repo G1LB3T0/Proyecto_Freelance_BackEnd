@@ -29,3 +29,7 @@ CREATE TABLE IF NOT EXISTS user_details (
 
 INSERT INTO user_details (user_id, first_name, last_name, phone, date_of_birth, gender, country, postal_code)
 VALUES (1, 'Juan', 'Perez', '12345678', '1995-03-15', 'Male', 'Guatemala', '01001');
+VALUES (2, 'Pablo', 'Hernan', '87654321', '1999-06-15', 'Male', 'Guatemala', '01001');
+VALUES (3, 'Carlos', 'Sanchez', '12348765', '2000-03-15', 'Male', 'Guatemala', '01001');
+VALUES (4, 'Laura', 'Ramirez', '87651234', '2004-03-15', 'Female', 'Guatemala', '01001');
+VALUES (5, 'TheNoob', 'Master', '24681357', '2005-04-09', 'Male', 'Guatemala', '01001');
