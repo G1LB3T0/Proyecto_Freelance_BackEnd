@@ -26,3 +26,6 @@ CREATE TABLE IF NOT EXISTS user_details (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+INSERT INTO user_details (user_id, first_name, last_name, phone, date_of_birth, gender, country, postal_code)
+VALUES (1, 'Juan', 'Pérez', '12345678', '1995-03-15', 'Male', 'Guatemala', '01001');
