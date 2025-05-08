@@ -1,6 +1,6 @@
+require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
-require('dotenv').config();
 
 // Importación de rutas
 const ejemploRoutes = require('./src/routes/ejemplo.routes');
@@ -33,6 +33,7 @@ app.use((req, res, next) => {
 // Rutas
 app.use('/api', loginRoutes);
 app.use('/register', registerRoutes);
+app.use('/ejemplo', ejemploRoutes);
 
 // Manejo de errores para rutas no encontradas
 app.use((req, res, next) => {

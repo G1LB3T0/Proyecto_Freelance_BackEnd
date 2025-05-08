@@ -32,6 +32,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://pgadmin:secret@db:5432/freelance_db
       - NODE_ENV=development
+      - JWT_SECRET=password
     restart: unless-stopped
 
 volumes:
