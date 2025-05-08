@@ -12,6 +12,7 @@ router.post('/', async (req, res) => {
             password, // sin encriptar por ahora
             first_name,
             last_name,
+            username,
             phone,
             date_of_birth,
             gender,
@@ -22,8 +23,9 @@ router.post('/', async (req, res) => {
         // 1. Verificar si el email o teléfono ya existen
         const existingLogin = await prisma.login.findUnique({ where: { email } });
         const existingPhone = await prisma.user_details.findUnique({ where: { phone } });
+        const existingUser = await prisma.login.findUnique({ where: { username } });
 
-        if (existingLogin || existingPhone) {
+        if (existingLogin || existingPhone || existingUser) {
             return res.status(409).json({
                 success: false,
                 message: 'Correo o teléfono ya en uso'
@@ -34,7 +36,8 @@ router.post('/', async (req, res) => {
         const login = await prisma.login.create({
             data: {
                 email,
-                password // sin encriptar por ahora
+                password,
+                username
             }
         });
 
@@ -59,7 +62,8 @@ router.post('/', async (req, res) => {
                 id: userDetails.id,
                 email: login.email,
                 nombre: userDetails.first_name,
-                apellido: userDetails.last_name
+                apellido: userDetails.last_name,
+                username: userDetails.username,
             }
         });
 
