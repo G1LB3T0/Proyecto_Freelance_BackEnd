@@ -22,6 +22,16 @@ CREATE TABLE IF NOT EXISTS user_details (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de posts
+CREATE TABLE IF NOT EXISTS posts (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Inserciones en login_credentials con username
 INSERT INTO login_credentials (username, email, password) VALUES ('juanp', 'jperez@gmail.com', 'donjuan217');
 INSERT INTO login_credentials (username, email, password) VALUES ('pablito', 'pablo456@gmail.com', 'hola456');
