@@ -9,7 +9,7 @@ router.post('/', async (req, res) => {
     try {
         const {
             email,
-            password, // sin encriptar por ahora
+            password,
             first_name,
             last_name,
             username,

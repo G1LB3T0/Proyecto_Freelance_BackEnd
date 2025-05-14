@@ -32,6 +32,29 @@ CREATE TABLE IF NOT EXISTS posts (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
+
+-- agregar url para imgagenes al post 
+ALTER TABLE posts
+ADD COLUMN image_url VARCHAR(255);
+
+-- Tabla de categories para los posts
+CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+);
+
+
+--agregar relacion de post con categories
+ALTER TABLE posts
+  ADD COLUMN category_id INT REFERENCES categories(id);
+
+
+
+--hace falta cambiar el tipo de dato en gender, y agregar la columna de estado para el post
+-- no acepta el tipo de valor ENUM 
+
+
 -- Inserciones en login_credentials con username
 INSERT INTO login_credentials (username, email, password) VALUES ('juanp', 'jperez@gmail.com', 'donjuan217');
 INSERT INTO login_credentials (username, email, password) VALUES ('pablito', 'pablo456@gmail.com', 'hola456');
@@ -58,3 +81,36 @@ VALUES (5, 'TheNoob', 'Master', '24681357', '2005-04-09', 'Male', 'Guatemala', '
 
 INSERT INTO user_details (user_id, first_name, last_name, phone, date_of_birth, gender, country, postal_code)
 VALUES (6, 'Karla', 'Fernandez', '98765432', '1998-05-10', 'Female', 'Guatemala', '01002');
+
+
+--algunas categorias 
+-- Insertar algunas categorías
+INSERT INTO categories (name)
+VALUES 
+('Tecnología'),
+('Salud'),
+('Deportes'),
+('Entretenimiento'),
+('Educación');
+
+--Insertar algunos posts
+INSERT INTO posts (user_id, title, content, image_url, created_at, updated_at)
+VALUES 
+(1, 'Cómo aprender SQL', 'SQL es un lenguaje fundamental para trabajar con bases de datos. En este artículo, aprenderás los conceptos básicos para comenzar...', 'https://mi-imagen.com/sql.jpg', NOW(), NOW());
+
+INSERT INTO posts (user_id, title, content, image_url, created_at, updated_at)
+VALUES 
+(2, 'Desarrollo web con JavaScript', 'JavaScript es el lenguaje de programación más popular para desarrollo web. En este artículo, exploramos sus características principales...', 'https://mi-imagen.com/javascript.jpg', NOW(), NOW());
+
+INSERT INTO posts (user_id, title, content, image_url, created_at, updated_at)
+VALUES 
+(3, 'Mejores prácticas de seguridad en bases de datos', 'En este post, revisamos las mejores prácticas para asegurar las bases de datos, protegiendo los datos sensibles de los usuarios...', 'https://mi-imagen.com/security.jpg', NOW(), NOW());
+
+INSERT INTO posts (user_id, title, content, image_url, created_at, updated_at)
+VALUES 
+(1, 'Introducción al diseño de interfaces de usuario', 'El diseño de interfaces de usuario es una parte clave del desarrollo de software. Este artículo cubre los principios básicos...', 'https://mi-imagen.com/ui-design.jpg', NOW(), NOW());
+
+INSERT INTO posts (user_id, title, content, image_url, created_at, updated_at)
+VALUES 
+(2, 'Cómo optimizar consultas SQL', 'Las consultas SQL son esenciales para el rendimiento de las bases de datos. Aquí discutimos algunas técnicas para optimizarlas...', 'https://mi-imagen.com/optimize-sql.jpg', NOW(), NOW());
+
