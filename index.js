@@ -8,6 +8,7 @@ const loginRoutes = require('./src/routes/login.routes');
 const registerRoutes = require('./src/routes/register.routes');
 const postRoutes = require('./src/routes/post.routes');
 const freelancerRoutes = require('./src/routes/freelancer.routes');
+const projectRoutes = require('./src/routes/project.routes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ app.use('/register', registerRoutes);
 app.use('/ejemplo', ejemploRoutes);
 app.use('/posts', postRoutes);
 app.use('/api', freelancerRoutes);
+app.use('/projects', projectRoutes);
 
 // Manejo de errores para rutas no encontradas
 app.use((req, res, next) => {
@@ -62,4 +64,4 @@ module.exports = pool;
 // Iniciar el servidor
 app.listen(port, () => {
     console.log(`Servidor corriendo en el puerto ${port}`);
-}); 
+});
