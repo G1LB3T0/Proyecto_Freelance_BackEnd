@@ -9,17 +9,19 @@ datasource db {
 }
 
 model Login {
-  id                Int                 @id @default(autoincrement())
-  username          String              @unique @db.VarChar(50)
-  email             String              @unique @db.VarChar(100)
-  password          String              @db.VarChar(255)
-  user_type         String              @db.VarChar(20)
-  createdAt         DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
-  freelancer_skills freelancer_skills[]
-  posts             posts[]
-  user_details      user_details?
-
-  events            Event[]             // relación con event
+  id                  Int                 @id @default(autoincrement())
+  username            String              @unique @db.VarChar(50)
+  email               String              @unique @db.VarChar(100)
+  password            String              @db.VarChar(255)
+  mame                String?             @db.VarChar(100)
+  createdAt           DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
+  posts               posts[]
+  user_details        user_details?
+  client_projects     project[]           @relation("ClientProjects")
+  freelancer_projects project[]           @relation("FreelancerProjects")
+  project_proposals   project_proposals[]
+  reviews_given       reviews[]           @relation("ReviewsGiven")
+  reviews_received    reviews[]           @relation("ReviewsReceived")
 
   @@map("login_credentials")
 }
@@ -40,9 +42,10 @@ model user_details {
 }
 
 model categories {
-  id    Int     @id @default(autoincrement())
-  name  String  @db.VarChar(100)
-  posts posts[]
+  id      Int       @id @default(autoincrement())
+  name    String    @db.VarChar(100)
+  posts   posts[]
+  project project[]
 }
 
 model posts {
@@ -58,41 +61,58 @@ model posts {
   login_credentials Login       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model freelancer_skills {
-  id                  Int       @id @default(autoincrement())
-  freelancer_id       Int
-  skill_id            Int
-  proficiency_level   Int?
-  years_of_experience Decimal?  @db.Decimal(4, 1)
-  created_at          DateTime? @default(now()) @db.Timestamp(6)
-  login_credentials   Login     @relation(fields: [freelancer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  skills              skills    @relation(fields: [skill_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model project {
+  id              Int       @id @default(autoincrement())
+  client_id       Int
+  freelancer_id   Int?
+  title           String    @db.VarChar(255)
+  description     String
+  budget          Decimal   @db.Decimal(10, 2)
+  deadline        DateTime? @db.Date
+  status          String    @default("open") @db.VarChar(50)
+  category_id     Int?
+  skills_required String[]
+  priority        String?   @default("medium") @db.VarChar(20)
+  completion_date DateTime? @db.Date
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  updated_at      DateTime? @default(now()) @db.Timestamp(6)
 
-  @@unique([freelancer_id, skill_id])
+  client     Login               @relation("ClientProjects", fields: [client_id], references: [id], onDelete: Cascade)
+  freelancer Login?              @relation("FreelancerProjects", fields: [freelancer_id], references: [id], onDelete: SetNull)
+  category   categories?         @relation(fields: [category_id], references: [id])
+  proposals  project_proposals[]
+  reviews    reviews?
 }
 
-model skills {
-  id                Int                 @id @default(autoincrement())
-  name              String              @unique @db.VarChar(100)
-  description       String?
-  created_at        DateTime?           @default(now()) @db.Timestamp(6)
-  freelancer_skills freelancer_skills[]
+model project_proposals {
+  id              Int       @id @default(autoincrement())
+  project_id      Int
+  freelancer_id   Int
+  proposed_budget Decimal   @db.Decimal(10, 2)
+  delivery_time   Int // días
+  proposal_text   String
+  status          String    @default("pending") @db.VarChar(50)
+  cover_letter    String?
+  portfolio_links String[]
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  updated_at      DateTime? @default(now()) @db.Timestamp(6)
+
+  project    project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  freelancer Login   @relation(fields: [freelancer_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, freelancer_id])
 }
 
-model Event {
+model reviews {
   id          Int       @id @default(autoincrement())
-  user_id     Int
-  title       String    @db.VarChar(255)
-  description String?
-  start_time  DateTime
-  end_time    DateTime?
-  category    String?   @db.VarChar(100)
-  status      String?   @db.VarChar(50)  // ej: 'confirmed', 'pending'
+  project_id  Int       @unique
+  reviewer_id Int // quien hace la review
+  reviewed_id Int // quien recibe la review
+  rating      Int // 1-5 estrellas
+  comment     String?
   created_at  DateTime? @default(now()) @db.Timestamp(6)
-  updated_at  DateTime? @default(now()) @db.Timestamp(6)
 
-  login       Login     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id])
+  project  project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  reviewer Login   @relation("ReviewsGiven", fields: [reviewer_id], references: [id], onDelete: Cascade)
+  reviewed Login   @relation("ReviewsReceived", fields: [reviewed_id], references: [id], onDelete: Cascade)
 }
