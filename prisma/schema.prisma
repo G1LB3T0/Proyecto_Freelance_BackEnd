@@ -9,13 +9,15 @@ datasource db {
 }
 
 model Login {
-  id           Int           @id @default(autoincrement())
-  username     String        @unique @db.VarChar(50)
-  email        String        @unique @db.VarChar(100)
-  password     String        @db.VarChar(255)
-  createdAt    DateTime?     @default(now()) @map("created_at") @db.Timestamp(6)
-  posts        posts[]
-  user_details user_details?
+  id                Int                 @id @default(autoincrement())
+  username          String              @unique @db.VarChar(50)
+  email             String              @unique @db.VarChar(100)
+  password          String              @db.VarChar(255)
+  user_type         String              @db.VarChar(20)
+  createdAt         DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
+  freelancer_skills freelancer_skills[]
+  posts             posts[]
+  user_details      user_details?
 
   @@map("login_credentials")
 }
@@ -52,4 +54,26 @@ model posts {
   category_id       Int?
   categories        categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   login_credentials Login       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model freelancer_skills {
+  id                  Int       @id @default(autoincrement())
+  freelancer_id       Int
+  skill_id            Int
+  proficiency_level   Int?
+  years_of_experience Decimal?  @db.Decimal(4, 1)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  login_credentials   Login     @relation(fields: [freelancer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  skills              skills    @relation(fields: [skill_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([freelancer_id, skill_id])
+}
+
+model skills {
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique @db.VarChar(100)
+  description       String?
+  created_at        DateTime?           @default(now()) @db.Timestamp(6)
+  freelancer_skills freelancer_skills[]
 }
