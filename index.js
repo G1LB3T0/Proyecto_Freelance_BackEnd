@@ -38,7 +38,7 @@ app.use('/api', loginRoutes);
 app.use('/register', registerRoutes);
 app.use('/ejemplo', ejemploRoutes);
 app.use('/posts', postRoutes);
-app.use('/api', freelancerRoutes);
+app.use('/freelancers', freelancerRoutes);
 app.use('/projects', projectRoutes);
 
 // Manejo de errores para rutas no encontradas

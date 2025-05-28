@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS login_credentials (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
+    user_type VARCHAR(20) NOT NULL CHECK (user_type IN ('freelancer', 'project_manager')),
     name VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -89,13 +90,13 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- ========== INSERTS ==========
 
 -- Insertar usuarios
-INSERT INTO login_credentials (username, email, password, name) VALUES 
-('juanp', 'jperez@gmail.com', 'donjuan217', 'Juan Pérez'),
-('pablito', 'pablo456@gmail.com', 'hola456', 'Pablo Hernán'),
-('csanchez', 'carlossanchez@icloud.com', 'donjuan217', 'Carlos Sánchez'),
-('laurita', 'lauraramirez@icloud.com', 'capi789', 'Laura Ramírez'),
-('noobmaster', 'nbmaster@gmail.com', 'noobmaster69', 'Noob Master'),
-('karla98', 'karlafernandez@gmail.com', 'karlaf98', 'Karla Fernández');
+INSERT INTO login_credentials (username, email, password, user_type, name) VALUES 
+('juanp', 'jperez@gmail.com', 'donjuan217', 'freelancer', 'Juan Pérez'),
+('pablito', 'pablo456@gmail.com', 'hola456', 'project_manager', 'Pablo Hernán'),
+('csanchez', 'carlossanchez@icloud.com', 'donjuan217', 'freelancer', 'Carlos Sánchez'),
+('laurita', 'lauraramirez@icloud.com', 'capi789', 'project_manager', 'Laura Ramírez'),
+('noobmaster', 'nbmaster@gmail.com', 'noobmaster69', 'freelancer', 'Noob Master'),
+('karla98', 'karlafernandez@gmail.com', 'karlaf98', 'project_manager', 'Karla Fernández');
 
 -- Insertar detalles de usuarios
 INSERT INTO user_details (user_id, first_name, last_name, phone, date_of_birth, gender, country, postal_code) VALUES
@@ -140,3 +141,46 @@ INSERT INTO project_proposals (project_id, freelancer_id, proposed_budget, deliv
 INSERT INTO reviews (project_id, reviewer_id, reviewed_id, rating, comment) VALUES 
 (1, 1, 5, 5, 'Excelente trabajo, cumplió con todos los requerimientos y entregó a tiempo.'),
 (2, 2, 3, 4, 'Buen trabajo, aunque hubo algunos retrasos menores.');
+
+-- Tabla de skills
+CREATE TABLE IF NOT EXISTS skills (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de relación entre freelancers y skills
+CREATE TABLE IF NOT EXISTS freelancer_skills (
+    id SERIAL PRIMARY KEY,
+    freelancer_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
+    skill_id INT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+    proficiency_level INT CHECK (proficiency_level BETWEEN 1 AND 5),
+    years_of_experience DECIMAL(4,1),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(freelancer_id, skill_id)
+);
+
+-- Insertar algunos skills de ejemplo
+INSERT INTO skills (name, description) VALUES
+('JavaScript', 'Lenguaje de programación para desarrollo web'),
+('Python', 'Lenguaje de programación versátil y fácil de aprender'),
+('React', 'Biblioteca JavaScript para construir interfaces de usuario'),
+('Node.js', 'Entorno de ejecución para JavaScript del lado del servidor'),
+('SQL', 'Lenguaje para gestionar bases de datos relacionales'),
+('UI/UX Design', 'Diseño de interfaces y experiencia de usuario'),
+('Project Management', 'Gestión y coordinación de proyectos'),
+('DevOps', 'Prácticas que combinan desarrollo de software y operaciones');
+
+-- Actualizar algunos usuarios existentes como freelancers
+UPDATE login_credentials SET user_type = 'freelancer' WHERE id IN (1, 3, 5);
+UPDATE login_credentials SET user_type = 'project_manager' WHERE id IN (2, 4, 6);
+
+-- Asignar algunas skills a freelancers
+INSERT INTO freelancer_skills (freelancer_id, skill_id, proficiency_level, years_of_experience) VALUES
+(1, 1, 4, 3.5),  -- Juan Perez con JavaScript
+(1, 5, 5, 4.0),  -- Juan Perez con SQL
+(3, 2, 4, 2.5),  -- Carlos Sanchez con Python
+(3, 3, 3, 2.0),  -- Carlos Sanchez con React
+(5, 4, 4, 3.0),  -- TheNoob Master con Node.js
+(5, 6, 3, 1.5);  -- TheNoob Master con UI/UX Design
