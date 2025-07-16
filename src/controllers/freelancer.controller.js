@@ -18,10 +18,16 @@ exports.getAllFreelancers = async (req, res) => {
             }
         });
         
-        res.json(freelancers);
+        res.json({
+            success: true,
+            data: freelancers
+        });
     } catch (error) {
         console.error('Error al obtener freelancers:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Error interno del servidor' 
+        });
     }
 };
 
@@ -53,10 +59,16 @@ exports.getFreelancersBySkill = async (req, res) => {
             }
         });
         
-        res.json(freelancers);
+        res.json({
+            success: true,
+            data: freelancers
+        });
     } catch (error) {
         console.error('Error al filtrar freelancers por skill:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Error interno del servidor' 
+        });
     }
 };
 
@@ -91,10 +103,16 @@ exports.getFreelancersBySkillAndLevel = async (req, res) => {
             }
         });
         
-        res.json(freelancers);
+        res.json({
+            success: true,
+            data: freelancers
+        });
     } catch (error) {
         console.error('Error al filtrar freelancers por skill y nivel:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Error interno del servidor' 
+        });
     }
 };
 
@@ -122,9 +140,15 @@ exports.getFreelancersByCountry = async (req, res) => {
             }
         });
         
-        res.json(freelancers);
+        res.json({
+            success: true,
+            data: freelancers
+        });
     } catch (error) {
         console.error('Error al filtrar freelancers por país:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Error interno del servidor' 
+        });
     }
 }; 

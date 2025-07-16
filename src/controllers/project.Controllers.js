@@ -65,9 +65,9 @@ exports.getProjectsByClient = async (req, res) => {
             include: {
                 freelancer: { select: { id: true, username: true, email: true } },
                 category: true,
-                proposals: {
+                project_proposals: {
                     include: {
-                        freelancer: { select: { id: true, username: true, email: true } }
+                        login_credentials: { select: { id: true, username: true, email: true } }
                     }
                 }
             }
@@ -120,6 +120,14 @@ exports.getProjectsByStatus = async (req, res) => {
 exports.createProject = async (req, res) => {
     try {
         const { client_id, title, description, budget, deadline, category_id, skills_required, priority } = req.body;
+
+        // Validar campos requeridos
+        if (!client_id || !title || !description || !budget) {
+            return res.status(400).json({
+                success: false,
+                error: 'Faltan campos requeridos: client_id, title, description, budget'
+            });
+        }
 
         const project = await prisma.project.create({
             data: {
@@ -203,7 +211,7 @@ exports.createProposal = async (req, res) => {
                 portfolio_links: portfolio_links || []
             },
             include: {
-                freelancer: { select: { id: true, username: true, email: true } },
+                login_credentials: { select: { id: true, username: true, email: true } },
                 project: { select: { id: true, title: true } }
             }
         });
@@ -222,7 +230,7 @@ exports.getProjectProposals = async (req, res) => {
         const proposals = await prisma.project_proposals.findMany({
             where: { project_id: Number(projectId) },
             include: {
-                freelancer: { select: { id: true, username: true, email: true } }
+                login_credentials: { select: { id: true, username: true, email: true } }
             }
         });
         res.json({ success: true, data: proposals });
@@ -240,7 +248,6 @@ exports.getFreelancerProposals = async (req, res) => {
             where: { freelancer_id: Number(freelancerId) },
             include: {
                 project: {
-                    select: { id: true, title: true, status: true, budget: true },
                     include: {
                         client: { select: { id: true, username: true, email: true } }
                     }
@@ -320,6 +327,18 @@ exports.createReview = async (req, res) => {
     try {
         const { project_id, reviewer_id, reviewed_id, rating, comment } = req.body;
 
+        // Verificar si ya existe una review para este proyecto
+        const existingReview = await prisma.reviews.findUnique({
+            where: { project_id: Number(project_id) }
+        });
+
+        if (existingReview) {
+            return res.status(409).json({ 
+                success: false, 
+                error: 'Ya existe una review para este proyecto' 
+            });
+        }
+
         const review = await prisma.reviews.create({
             data: {
                 project_id: Number(project_id),
@@ -329,8 +348,8 @@ exports.createReview = async (req, res) => {
                 comment
             },
             include: {
-                reviewer: { select: { id: true, username: true } },
-                reviewed: { select: { id: true, username: true } },
+                login_credentials_reviews_reviewer_idTologin_credentials: { select: { id: true, username: true } },
+                login_credentials_reviews_reviewed_idTologin_credentials: { select: { id: true, username: true } },
                 project: { select: { id: true, title: true } }
             }
         });
@@ -349,7 +368,7 @@ exports.getUserReviews = async (req, res) => {
         const reviews = await prisma.reviews.findMany({
             where: { reviewed_id: Number(userId) },
             include: {
-                reviewer: { select: { id: true, username: true } },
+                login_credentials_reviews_reviewer_idTologin_credentials: { select: { id: true, username: true } },
                 project: { select: { id: true, title: true } }
             }
         });

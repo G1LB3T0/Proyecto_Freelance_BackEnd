@@ -17,19 +17,62 @@ router.post('/', async (req, res) => {
             date_of_birth,
             gender,
             country,
-            postal_code
+            postal_code,
+            user_type = 'freelancer' // Valor por defecto
         } = req.body;
 
-        // 1. Verificar si el email o teléfono ya existen
+        // Validaciones
+        if (!email || !password || !first_name || !last_name || !username) {
+            return res.status(400).json({
+                success: false,
+                error: 'Todos los campos obligatorios deben estar presentes'
+            });
+        }
+
+        // Validar email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Formato de email inválido'
+            });
+        }
+
+        // Validar contraseña
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: 'La contraseña debe tener al menos 6 caracteres'
+            });
+        }
+
+        // 1. Verificar si el email o username ya existen
         const existingLogin = await prisma.login.findUnique({ where: { email } });
-        const existingPhone = await prisma.user_details.findUnique({ where: { phone } });
         const existingUser = await prisma.login.findUnique({ where: { username } });
 
-        if (existingLogin || existingPhone || existingUser) {
+        if (existingLogin) {
             return res.status(409).json({
                 success: false,
-                message: 'Correo o teléfono ya en uso'
+                error: 'El email ya está en uso'
             });
+        }
+
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                error: 'El username ya está en uso'
+            });
+        }
+
+        // Verificar teléfono solo si se proporciona
+        if (phone) {
+            const existingPhone = await prisma.user_details.findUnique({ where: { phone } });
+            if (existingPhone) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'El teléfono ya está en uso'
+                });
+            }
         }
 
         // 2. Crear credenciales de login
@@ -37,7 +80,8 @@ router.post('/', async (req, res) => {
             data: {
                 email,
                 password,
-                username
+                username,
+                user_type
             }
         });
 
@@ -57,13 +101,15 @@ router.post('/', async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Usuario registrado con éxito',
+            message: 'Usuario registrado exitosamente',
             data: {
-                id: userDetails.id,
-                email: login.email,
-                nombre: userDetails.first_name,
-                apellido: userDetails.last_name,
-                username: userDetails.username,
+                user: {
+                    id: userDetails.id,
+                    email: login.email,
+                    nombre: userDetails.first_name,
+                    apellido: userDetails.last_name,
+                    username: login.username,
+                }
             }
         });
 

@@ -38,7 +38,7 @@ app.use('/api', loginRoutes);
 app.use('/register', registerRoutes);
 app.use('/ejemplo', ejemploRoutes);
 app.use('/posts', postRoutes);
-app.use('/freelancers', freelancerRoutes);
+app.use('/api/freelancers', freelancerRoutes);
 app.use('/projects', projectRoutes);
 
 // Manejo de errores para rutas no encontradas
@@ -59,9 +59,11 @@ app.use((error, req, res, next) => {
 });
 
 // Exportar la conexión a la base de datos para usarla en otros archivos
-module.exports = pool;
+module.exports = { app, pool };
 
-// Iniciar el servidor
-app.listen(port, () => {
-    console.log(`Servidor corriendo en el puerto ${port}`);
-});
+// Solo iniciar el servidor si no estamos en modo test
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(port, () => {
+        console.log(`Servidor corriendo en el puerto ${port}`);
+    });
+}

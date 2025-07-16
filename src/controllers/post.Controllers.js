@@ -64,6 +64,15 @@ exports.getPostsByCategoryId = async (req, res) => {
 exports.createPost = async (req, res) => {
     try {
         const { user_id, title, content, image_url, category_id } = req.body;
+        
+        // Validar campos requeridos
+        if (!user_id || !title || !content) {
+            return res.status(400).json({
+                success: false,
+                error: 'Faltan campos requeridos: user_id, title, content'
+            });
+        }
+        
         const post = await prisma.posts.create({
             data: {
                 user_id: Number(user_id),
