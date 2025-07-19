@@ -184,13 +184,3 @@ INSERT INTO freelancer_skills (freelancer_id, skill_id, proficiency_level, years
 (3, 3, 3, 2.0),  -- Carlos Sanchez con React
 (5, 4, 4, 3.0),  -- TheNoob Master con Node.js
 (5, 6, 3, 1.5);  -- TheNoob Master con UI/UX Design
-
--- Tabla de calendario
-CREATE TABLE IF NOT EXISTS calendar_events (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    date DATE NOT NULL,
-    user_id INT REFERENCES login_credentials(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
