@@ -184,3 +184,19 @@ INSERT INTO freelancer_skills (freelancer_id, skill_id, proficiency_level, years
 (3, 3, 3, 2.0),  -- Carlos Sanchez con React
 (5, 4, 4, 3.0),  -- TheNoob Master con Node.js
 (5, 6, 3, 1.5);  -- TheNoob Master con UI/UX Design
+
+-- Tabla de eventos del calendario
+CREATE TABLE IF NOT EXISTS event (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    day INT NOT NULL,
+    month INT NOT NULL,
+    year INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO event (title, day, month, year) VALUES
+('App Móvil Fitness', 20, 5, 2025),
+('Workshop de React', 21, 5, 2025),
+('Blog Personal', 25, 5, 2025),
+('Networking Online', 29, 5, 2025);

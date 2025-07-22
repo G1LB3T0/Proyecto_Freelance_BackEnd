@@ -15,7 +15,7 @@ model Login {
   password          String              @db.VarChar(255)
   user_type         String              @db.VarChar(20)
   createdAt         DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
-  Event             Event[]
+  event             event[]
   freelancer_skills freelancer_skills[]
   posts             posts[]
   user_details      user_details?
@@ -79,7 +79,7 @@ model skills {
   freelancer_skills freelancer_skills[]
 }
 
-model Event {
+model event {
   id                Int       @id @default(autoincrement())
   user_id           Int
   title             String    @db.VarChar(255)
