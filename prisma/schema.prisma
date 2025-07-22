@@ -80,17 +80,14 @@ model skills {
 }
 
 model event {
-  id                Int       @id @default(autoincrement())
-  user_id           Int
-  title             String    @db.VarChar(255)
-  description       String?
-  start_time        DateTime
-  end_time          DateTime?
-  category          String?   @db.VarChar(100)
-  status            String?   @db.VarChar(50)
-  created_at        DateTime? @default(now()) @db.Timestamp(6)
-  updated_at        DateTime? @default(now()) @db.Timestamp(6)
-  login_credentials Login     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  title      String    @db.VarChar(255)
+  day        Int
+  month      Int
+  year       Int
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  login_credentials Login @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
 }

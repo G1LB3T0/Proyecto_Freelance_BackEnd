@@ -185,18 +185,18 @@ INSERT INTO freelancer_skills (freelancer_id, skill_id, proficiency_level, years
 (5, 4, 4, 3.0),  -- TheNoob Master con Node.js
 (5, 6, 3, 1.5);  -- TheNoob Master con UI/UX Design
 
--- Tabla de eventos del calendario
 CREATE TABLE IF NOT EXISTS event (
     id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
-    day INT NOT NULL,
-    month INT NOT NULL,
+    day INT NOT NULL CHECK (day BETWEEN 1 AND 31),
+    month INT NOT NULL CHECK (month BETWEEN 1 AND 12),
     year INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO event (title, day, month, year) VALUES
-('App Móvil Fitness', 20, 5, 2025),
-('Workshop de React', 21, 5, 2025),
-('Blog Personal', 25, 5, 2025),
-('Networking Online', 29, 5, 2025);
+INSERT INTO event (user_id, title, day, month, year) VALUES
+(1, 'App Móvil Fitness', 20, 5, 2025),
+(1, 'Workshop de React', 21, 5, 2025),
+(1, 'Blog Personal', 25, 5, 2025),
+(1, 'Networking Online', 29, 5, 2025);
