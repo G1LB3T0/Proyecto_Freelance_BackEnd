@@ -124,11 +124,11 @@ INSERT INTO posts (user_id, title, content, image_url, category_id, created_at, 
 (2, 'Cómo optimizar consultas SQL', 'Las consultas SQL son esenciales para el rendimiento de las bases de datos. Aquí discutimos algunas técnicas para optimizarlas...', 'https://mi-imagen.com/optimize-sql.jpg', 1, NOW(), NOW());
 
 -- Insertar proyectos
-INSERT INTO project (client_id, title, description, budget, deadline, status, category_id, skills_required, priority) VALUES 
-(1, 'Desarrollo de página web corporativa', 'Necesito una página web moderna para mi empresa con diseño responsive y sistema de contacto', 1500.00, '2025-07-15', 'open', 1, ARRAY['HTML', 'CSS', 'JavaScript', 'React'], 'high'),
-(2, 'App móvil de delivery', 'Aplicación móvil para delivery de comida con sistema de pagos integrado', 3000.00, '2025-08-30', 'open', 1, ARRAY['React Native', 'Node.js', 'MongoDB'], 'medium'),
-(3, 'Sistema de gestión escolar', 'Sistema web para gestionar estudiantes, notas y asistencia', 2500.00, '2025-09-01', 'open', 1, ARRAY['Python', 'Django', 'PostgreSQL'], 'medium'),
-(4, 'Campaña de marketing digital', 'Diseño de campaña publicitaria para redes sociales', 800.00, '2025-06-30', 'open', 4, ARRAY['Photoshop', 'Marketing Digital', 'Redes Sociales'], 'low');
+INSERT INTO project (client_id, freelancer_id, title, description, budget, deadline, status, category_id, skills_required, priority) VALUES 
+(1, 5, 'Desarrollo de página web corporativa', 'Necesito una página web moderna para mi empresa con diseño responsive y sistema de contacto', 1500.00, '2025-07-15', 'open', 1, ARRAY['HTML', 'CSS', 'JavaScript', 'React'], 'high'),
+(2, 3, 'App móvil de delivery', 'Aplicación móvil para delivery de comida con sistema de pagos integrado', 3000.00, '2025-08-30', 'open', 1, ARRAY['React Native', 'Node.js', 'MongoDB'], 'medium'),
+(3, 1, 'Sistema de gestión escolar', 'Sistema web para gestionar estudiantes, notas y asistencia', 2500.00, '2025-09-01', 'open', 1, ARRAY['Python', 'Django', 'PostgreSQL'], 'medium'),
+(4, 5, 'Campaña de marketing digital', 'Diseño de campaña publicitaria para redes sociales', 800.00, '2025-06-30', 'open', 4, ARRAY['Photoshop', 'Marketing Digital', 'Redes Sociales'], 'low');
 
 -- Insertar propuestas
 INSERT INTO project_proposals (project_id, freelancer_id, proposed_budget, delivery_time, proposal_text, cover_letter) VALUES 

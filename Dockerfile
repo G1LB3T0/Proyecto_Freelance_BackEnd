@@ -29,6 +29,7 @@ WORKDIR /app
 COPY --from=builder --chown=nodeuser:nodegroup /app/node_modules ./node_modules
 COPY --from=builder --chown=nodeuser:nodegroup /app/package*.json ./
 COPY --from=builder --chown=nodeuser:nodegroup /app/src ./src
+COPY --from=builder --chown=nodeuser:nodegroup /app/tests ./tests
 COPY --from=builder --chown=nodeuser:nodegroup /app/index.js ./
 COPY --from=builder --chown=nodeuser:nodegroup /app/prisma ./prisma/
 COPY --from=builder --chown=nodeuser:nodegroup /app/node_modules/.prisma ./node_modules/.prisma/

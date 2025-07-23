@@ -6,14 +6,10 @@ const prisma = new PrismaClient({
 // Obtener todos los proyectos
 exports.getProjects = async (req, res) => {
     try {
-        console.log('🔍 Iniciando consulta de proyectos...');
-
         // Prueba básica sin includes
         const projectCount = await prisma.project.count();
-        console.log('📊 Total de proyectos:', projectCount);
 
         const projects = await prisma.project.findMany();
-        console.log('✅ Proyectos obtenidos:', projects.length);
 
         res.json({ success: true, data: projects, count: projectCount });
     } catch (error) {
@@ -33,13 +29,9 @@ exports.getProjects = async (req, res) => {
 exports.getProjectById = async (req, res) => {
     const { id } = req.params;
     try {
-        console.log(`🔍 Buscando proyecto con ID: ${id}`);
-
         const project = await prisma.project.findUnique({
             where: { id: Number(id) }
         });
-
-        console.log('📄 Proyecto encontrado:', project);
 
         if (!project) {
             return res.status(404).json({ success: false, error: 'Proyecto no encontrado' });
@@ -64,7 +56,7 @@ exports.getProjectsByClient = async (req, res) => {
             where: { client_id: Number(clientId) },
             include: {
                 freelancer: { select: { id: true, username: true, email: true } },
-                category: true,
+                categories: true,
                 project_proposals: {
                     include: {
                         login_credentials: { select: { id: true, username: true, email: true } }
@@ -87,7 +79,7 @@ exports.getProjectsByFreelancer = async (req, res) => {
             where: { freelancer_id: Number(freelancerId) },
             include: {
                 client: { select: { id: true, username: true, email: true } },
-                category: true
+                categories: true
             }
         });
         res.json({ success: true, data: projects });
@@ -106,7 +98,7 @@ exports.getProjectsByStatus = async (req, res) => {
             include: {
                 client: { select: { id: true, username: true, email: true } },
                 freelancer: { select: { id: true, username: true, email: true } },
-                category: true
+                categories: true
             }
         });
         res.json({ success: true, data: projects });
@@ -142,7 +134,7 @@ exports.createProject = async (req, res) => {
             },
             include: {
                 client: { select: { id: true, username: true, email: true } },
-                category: true
+                categories: true
             }
         });
 
@@ -170,7 +162,7 @@ exports.updateProject = async (req, res) => {
             include: {
                 client: { select: { id: true, username: true, email: true } },
                 freelancer: { select: { id: true, username: true, email: true } },
-                category: true
+                categories: true
             }
         });
 

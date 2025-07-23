@@ -34,6 +34,11 @@ describe('Projects API', () => {
         expect(response.body.success).toBe(true)
         expect(response.body.data).toHaveProperty('id')
         expect(response.body.data.id).toBe(firstProject.id)
+        expect(response.body.data).toHaveProperty('client_id')
+        expect(response.body.data).toHaveProperty('freelancer_id')
+        expect(response.body.data).toHaveProperty('title')
+        expect(response.body.data).toHaveProperty('description')
+        expect(response.body.data).toHaveProperty('budget')
       }
     })
 

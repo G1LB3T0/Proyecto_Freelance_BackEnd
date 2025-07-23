@@ -24,14 +24,16 @@ describe('Register API', () => {
         .send(newUser)
         .expect(201)
 
-      expect(response.body).toHaveProperty('success')
-      expect(response.body.success).toBe(true)
+      expect(response.body).toHaveProperty('success', true)
       expect(response.body).toHaveProperty('message')
       expect(response.body.message).toContain('Usuario registrado exitosamente')
       expect(response.body).toHaveProperty('data')
       expect(response.body.data).toHaveProperty('user')
-      expect(response.body.data.user.email).toBe(newUser.email)
-      expect(response.body.data.user.username).toBe(newUser.username)
+      expect(response.body.data.user).toHaveProperty('id')
+      expect(response.body.data.user).toHaveProperty('email', newUser.email)
+      expect(response.body.data.user).toHaveProperty('nombre', newUser.first_name)
+      expect(response.body.data.user).toHaveProperty('apellido', newUser.last_name)
+      expect(response.body.data.user).toHaveProperty('username', newUser.username)
     })
 
     it('debería registrar un nuevo usuario project_manager', async () => {
@@ -46,7 +48,8 @@ describe('Register API', () => {
         date_of_birth: '1985-05-15',
         gender: 'Female',
         country: 'Guatemala',
-        postal_code: '01002'
+        postal_code: '01002',
+        user_type: 'project_manager'
       }
 
       const response = await request(app)
@@ -54,14 +57,16 @@ describe('Register API', () => {
         .send(newUser)
         .expect(201)
 
-      expect(response.body).toHaveProperty('success')
-      expect(response.body.success).toBe(true)
+      expect(response.body).toHaveProperty('success', true)
       expect(response.body).toHaveProperty('message')
       expect(response.body.message).toContain('Usuario registrado exitosamente')
       expect(response.body).toHaveProperty('data')
       expect(response.body.data).toHaveProperty('user')
-      expect(response.body.data.user.email).toBe(newUser.email)
-      expect(response.body.data.user.username).toBe(newUser.username)
+      expect(response.body.data.user).toHaveProperty('id')
+      expect(response.body.data.user).toHaveProperty('email', newUser.email)
+      expect(response.body.data.user).toHaveProperty('nombre', newUser.first_name)
+      expect(response.body.data.user).toHaveProperty('apellido', newUser.last_name)
+      expect(response.body.data.user).toHaveProperty('username', newUser.username)
     })
 
     it('debería rechazar registro con email duplicado', async () => {
@@ -83,8 +88,7 @@ describe('Register API', () => {
         .send(duplicateUser)
         .expect(409)
 
-      expect(response.body).toHaveProperty('success')
-      expect(response.body.success).toBe(false)
+      expect(response.body).toHaveProperty('success', false)
       expect(response.body).toHaveProperty('error')
       expect(response.body.error).toContain('email')
     })
@@ -108,8 +112,7 @@ describe('Register API', () => {
         .send(duplicateUser)
         .expect(409)
 
-      expect(response.body).toHaveProperty('success')
-      expect(response.body.success).toBe(false)
+      expect(response.body).toHaveProperty('success', false)
       expect(response.body).toHaveProperty('error')
       expect(response.body.error).toContain('username')
     })
@@ -126,9 +129,9 @@ describe('Register API', () => {
         .send(incompleteUser)
         .expect(400)
 
-      expect(response.body).toHaveProperty('success')
-      expect(response.body.success).toBe(false)
+      expect(response.body).toHaveProperty('success', false)
       expect(response.body).toHaveProperty('error')
+      expect(response.body.error).toContain('obligatorios')
     })
 
     it('debería rechazar registro con email inválido', async () => {
@@ -150,9 +153,9 @@ describe('Register API', () => {
         .send(invalidUser)
         .expect(400)
 
-      expect(response.body).toHaveProperty('success')
-      expect(response.body.success).toBe(false)
+      expect(response.body).toHaveProperty('success', false)
       expect(response.body).toHaveProperty('error')
+      expect(response.body.error).toContain('email')
     })
 
     it('debería rechazar registro con contraseña muy corta', async () => {
@@ -174,9 +177,9 @@ describe('Register API', () => {
         .send(weakPasswordUser)
         .expect(400)
 
-      expect(response.body).toHaveProperty('success')
-      expect(response.body.success).toBe(false)
+      expect(response.body).toHaveProperty('success', false)
       expect(response.body).toHaveProperty('error')
+      expect(response.body.error).toContain('contraseña')
     })
   })
 }) 
