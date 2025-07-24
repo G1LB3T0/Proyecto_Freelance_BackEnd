@@ -14,23 +14,37 @@ const getAllEvents = async (req, res) => {
 // POST /api/events
 const createEvent = async (req, res) => {
   try {
-    const { title, description, start_time, end_time, category, status, user_id } = req.body;
+    const { title, day, month, year, user_id } = req.body;
+
+    // Validaciones básicas
+    if (!title || !day || !month || !year || !user_id) {
+      return res.status(400).json({
+        error: 'Faltan campos obligatorios: title, day, month, year, user_id'
+      });
+    }
+
+    if (day < 1 || day > 31) {
+      return res.status(400).json({ error: 'El día debe estar entre 1 y 31' });
+    }
+
+    if (month < 1 || month > 12) {
+      return res.status(400).json({ error: 'El mes debe estar entre 1 y 12' });
+    }
 
     const newEvent = await prisma.event.create({
       data: {
         title,
-        description,
-        start_time: new Date(start_time),
-        end_time: end_time ? new Date(end_time) : null,
-        category,
-        status,
+        day: parseInt(day),
+        month: parseInt(month),
+        year: parseInt(year),
         user_id: parseInt(user_id)
       }
     });
 
     res.status(201).json(newEvent);
   } catch (err) {
-    res.status(400).json({ error: 'Error al crear evento' });
+    console.error('Error al crear evento:', err);
+    res.status(400).json({ error: 'Error al crear evento: ' + err.message });
   }
 };
 
@@ -38,23 +52,36 @@ const createEvent = async (req, res) => {
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, start_time, end_time, category, status } = req.body;
+    const { title, day, month, year } = req.body;
+
+    // Validaciones básicas
+    if (day && (day < 1 || day > 31)) {
+      return res.status(400).json({ error: 'El día debe estar entre 1 y 31' });
+    }
+
+    if (month && (month < 1 || month > 12)) {
+      return res.status(400).json({ error: 'El mes debe estar entre 1 y 12' });
+    }
+
+    const dataToUpdate = {};
+    if (title) dataToUpdate.title = title;
+    if (day) dataToUpdate.day = parseInt(day);
+    if (month) dataToUpdate.month = parseInt(month);
+    if (year) dataToUpdate.year = parseInt(year);
 
     const updatedEvent = await prisma.event.update({
       where: { id: parseInt(id) },
-      data: {
-        title,
-        description,
-        start_time: new Date(start_time),
-        end_time: end_time ? new Date(end_time) : null,
-        category,
-        status
-      }
+      data: dataToUpdate
     });
 
     res.json(updatedEvent);
   } catch (err) {
-    res.status(400).json({ error: 'Error al actualizar evento' });
+    console.error('Error al actualizar evento:', err);
+    if (err.code === 'P2025') {
+      res.status(404).json({ error: 'Evento no encontrado' });
+    } else {
+      res.status(400).json({ error: 'Error al actualizar evento: ' + err.message });
+    }
   }
 };
 
@@ -67,9 +94,14 @@ const deleteEvent = async (req, res) => {
       where: { id: parseInt(id) }
     });
 
-    res.json({ message: 'Evento eliminado' });
+    res.json({ message: 'Evento eliminado exitosamente' });
   } catch (err) {
-    res.status(400).json({ error: 'Error al eliminar evento' });
+    console.error('Error al eliminar evento:', err);
+    if (err.code === 'P2025') {
+      res.status(404).json({ error: 'Evento no encontrado' });
+    } else {
+      res.status(400).json({ error: 'Error al eliminar evento: ' + err.message });
+    }
   }
 };
 
