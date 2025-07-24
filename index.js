@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
+const { seedDatabase } = require('./src/database/seedData');
 
 // Importación de rutas
 const ejemploRoutes = require('./src/routes/ejemplo.routes');
@@ -65,7 +66,21 @@ module.exports = { app, pool };
 
 // Solo iniciar el servidor si no estamos en modo test
 if (process.env.NODE_ENV !== 'test') {
-    app.listen(port, () => {
-        console.log(`Servidor corriendo en el puerto ${port}`);
-    });
+    // Función para inicializar la aplicación
+    async function startServer() {
+        try {
+            // Ejecutar seeding de la base de datos
+            await seedDatabase(pool);
+
+            // Iniciar el servidor
+            app.listen(port, () => {
+                console.log(`🚀 Servidor corriendo en el puerto ${port}`);
+            });
+        } catch (error) {
+            console.error('❌ Error al inicializar la aplicación:', error);
+            process.exit(1);
+        }
+    }
+
+    startServer();
 }
