@@ -14,16 +14,14 @@ const getAllEvents = async (req, res) => {
 // POST /api/events
 const createEvent = async (req, res) => {
   try {
-    const { title, description, start_time, end_time, category, status, user_id } = req.body;
+    const { title, day, month, year, user_id } = req.body;
 
     const newEvent = await prisma.event.create({
       data: {
         title,
-        description,
-        start_time: new Date(start_time),
-        end_time: end_time ? new Date(end_time) : null,
-        category,
-        status,
+        day: parseInt(day),
+        month: parseInt(month),
+        year: parseInt(year),
         user_id: parseInt(user_id)
       }
     });
@@ -38,17 +36,16 @@ const createEvent = async (req, res) => {
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, start_time, end_time, category, status } = req.body;
+    const { title, day, month, year, user_id } = req.body;
 
     const updatedEvent = await prisma.event.update({
       where: { id: parseInt(id) },
       data: {
         title,
-        description,
-        start_time: new Date(start_time),
-        end_time: end_time ? new Date(end_time) : null,
-        category,
-        status
+        day: parseInt(day),
+        month: parseInt(month),
+        year: parseInt(year),
+        user_id: parseInt(user_id)
       }
     });
 

@@ -195,8 +195,8 @@ CREATE TABLE IF NOT EXISTS event (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO event (user_id, title, day, month, year) VALUES
-(1, 'App Móvil Fitness', 20, 5, 2025),
-(1, 'Workshop de React', 21, 5, 2025),
-(1, 'Blog Personal', 25, 5, 2025),
-(1, 'Networking Online', 29, 5, 2025);
+INSERT INTO event (user_id, title, description, day, month, year) VALUES
+(1, 'App Móvil Fitness', 'App para hacer rutinas en casa', 20, 5, 2025),
+(1, 'Workshop de React', 'Taller práctico de componentes y hooks', 21, 5, 2025),
+(1, 'Blog Personal', 'Diseño y desarrollo de blog con Gatsby', 25, 5, 2025),
+(1, 'Networking Online', 'Evento para conectar freelancers y PMs', 29, 5, 2025);
