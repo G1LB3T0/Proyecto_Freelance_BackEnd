@@ -64,8 +64,8 @@ app.use((error, req, res, next) => {
 // Exportar la conexión a la base de datos para usarla en otros archivos
 module.exports = { app, pool };
 
-// Solo iniciar el servidor si no estamos en modo test
-if (process.env.NODE_ENV !== 'test') {
+// Solo iniciar el servidor si no estamos en modo test y no estamos siendo importados
+if (process.env.NODE_ENV !== 'test' && require.main === module) {
     // Función para inicializar la aplicación
     async function startServer() {
         try {
