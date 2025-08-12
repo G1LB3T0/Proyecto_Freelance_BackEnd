@@ -11,6 +11,7 @@ const postRoutes = require('./src/routes/post.routes');
 const freelancerRoutes = require('./src/routes/freelancer.routes');
 const projectRoutes = require('./src/routes/project.routes');
 const eventRoutes = require('./src/routes/event.routes');
+const userRoutes = require('./src/routes/user.routes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -43,6 +44,7 @@ app.use('/posts', postRoutes);
 app.use('/api/freelancers', freelancerRoutes);
 app.use('/projects', projectRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/users', userRoutes);
 
 // Manejo de errores para rutas no encontradas
 app.use((req, res, next) => {

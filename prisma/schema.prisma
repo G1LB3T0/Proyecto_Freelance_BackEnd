@@ -25,6 +25,8 @@ model Login {
   reviews_reviews_reviewed_idTologin_credentials   reviews[]           @relation("reviews_reviewed_idTologin_credentials")
   reviews_reviews_reviewer_idTologin_credentials   reviews[]           @relation("reviews_reviewer_idTologin_credentials")
   user_details                                     user_details?
+  user_profiles                                    user_profiles?
+  notifications                                    notifications[]
 
   @@map("login_credentials")
 }
@@ -54,10 +56,14 @@ model categories {
 model posts {
   id                Int         @id @default(autoincrement())
   user_id           Int
+  author_name       String?     @db.VarChar(255)
+  author_avatar     String?     @db.VarChar(255)
   title             String      @db.VarChar(255)
   content           String
   image_url         String?     @db.VarChar(255)
   category_id       Int?
+  likes_count       Int         @default(0)
+  comments_count    Int         @default(0)
   created_at        DateTime?   @default(now()) @db.Timestamp(6)
   updated_at        DateTime?   @default(now()) @db.Timestamp(6)
   categories        categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -99,25 +105,25 @@ model event {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model project {
-  id                                                         Int                 @id @default(autoincrement())
-  client_id                                                  Int
-  freelancer_id                                              Int?
-  title                                                      String              @db.VarChar(255)
-  description                                                String
-  budget                                                     Decimal             @db.Decimal(10, 2)
-  deadline                                                   DateTime?           @db.Date
-  status                                                     String?             @default("open") @db.VarChar(50)
-  category_id                                                Int?
-  skills_required                                            String[]
-  priority                                                   String?             @default("medium") @db.VarChar(20)
-  completion_date                                            DateTime?           @db.Date
-  created_at                                                 DateTime?           @default(now()) @db.Timestamp(6)
-  updated_at                                                 DateTime?           @default(now()) @db.Timestamp(6)
-  categories                                                 categories?         @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  client                                                     Login               @relation("project_client_idTologin_credentials", fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  freelancer                                                 Login?              @relation("project_freelancer_idTologin_credentials", fields: [freelancer_id], references: [id], onUpdate: NoAction)
-  project_proposals                                          project_proposals[]
-  reviews                                                    reviews?
+  id                Int                 @id @default(autoincrement())
+  client_id         Int
+  freelancer_id     Int?
+  title             String              @db.VarChar(255)
+  description       String
+  budget            Decimal             @db.Decimal(10, 2)
+  deadline          DateTime?           @db.Date
+  status            String?             @default("open") @db.VarChar(50)
+  category_id       Int?
+  skills_required   String[]
+  priority          String?             @default("medium") @db.VarChar(20)
+  completion_date   DateTime?           @db.Date
+  created_at        DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?           @default(now()) @db.Timestamp(6)
+  categories        categories?         @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  client            Login               @relation("project_client_idTologin_credentials", fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  freelancer        Login?              @relation("project_freelancer_idTologin_credentials", fields: [freelancer_id], references: [id], onUpdate: NoAction)
+  project_proposals project_proposals[]
+  reviews           reviews?
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -151,4 +157,33 @@ model reviews {
   project                                                  project   @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   login_credentials_reviews_reviewed_idTologin_credentials Login     @relation("reviews_reviewed_idTologin_credentials", fields: [reviewed_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   login_credentials_reviews_reviewer_idTologin_credentials Login     @relation("reviews_reviewer_idTologin_credentials", fields: [reviewer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user_profiles {
+  user_id           Int       @id
+  avatar            String?   @db.VarChar(255)
+  bio               String?
+  interests         String?
+  profile_views     Int       @default(0)
+  projects_count    Int       @default(0)
+  connections_count Int       @default(0)
+  is_verified       Boolean   @default(false)
+  is_active         Boolean   @default(true)
+  last_active_at    DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @default(now())
+  login_credentials Login     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model notifications {
+  id                Int      @id @default(autoincrement())
+  user_id           Int
+  message           String
+  type              String   @db.VarChar(50)
+  priority          Int      @default(0) @db.SmallInt
+  read_status       Boolean  @default(false)
+  related_id        Int?
+  related_type      String?  @db.VarChar(50)
+  created_at        DateTime @default(now())
+  login_credentials Login    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
