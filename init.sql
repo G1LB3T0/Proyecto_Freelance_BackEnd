@@ -30,17 +30,8 @@ CREATE TABLE IF NOT EXISTS categories (
     name VARCHAR(100) NOT NULL
 );
 
--- Tabla de posts
-CREATE TABLE IF NOT EXISTS posts (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL,
-    image_url VARCHAR(255),
-    category_id INT REFERENCES categories(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+
+
 
 -- Tabla de proyectos (SINGULAR - project, no projects)
 CREATE TABLE IF NOT EXISTS project (
@@ -87,6 +78,87 @@ CREATE TABLE IF NOT EXISTS reviews (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de skills
+CREATE TABLE IF NOT EXISTS skills (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de relación entre freelancers y skills
+CREATE TABLE IF NOT EXISTS freelancer_skills (
+    id SERIAL PRIMARY KEY,
+    freelancer_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
+    skill_id INT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+    proficiency_level INT CHECK (proficiency_level BETWEEN 1 AND 5),
+    years_of_experience DECIMAL(4,1),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(freelancer_id, skill_id)
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    day INT NOT NULL CHECK (day BETWEEN 1 AND 31),
+    month INT NOT NULL CHECK (month BETWEEN 1 AND 12),
+    year INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS posts (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
+    author_name VARCHAR(255),
+    author_avatar VARCHAR(255),
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    image_url VARCHAR(255),
+    category_id INT REFERENCES categories(id),
+    likes_count INTEGER DEFAULT 0,
+    comments_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+--Índices para performance 
+create index idx_posts_user_id on posts(user_id);
+create index idx_posts_category_id on posts(category_id);
+create index idx_posts_created_at on posts(created_at);
+
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id INT PRIMARY KEY REFERENCES login_credentials(id) ON DELETE CASCADE,
+    avatar VARCHAR(255),
+    bio TEXT,
+    interests TEXT,
+    profile_views INTEGER DEFAULT 0,
+    projects_count INTEGER DEFAULT 0,
+    connections_count INTEGER DEFAULT 0,
+    is_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_active_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    type VARCHAR(50) CHECK (type IN ('message', 'opportunity', 'project_update', 'like', 'comment')),
+    priority SMALLINT DEFAULT 0,
+    read_status BOOLEAN DEFAULT FALSE,
+    related_id INTEGER,
+    related_type VARCHAR(50) CHECK (related_type IN ('post', 'project', 'message')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índice optimizado que propusiste
+CREATE INDEX idx_notifications_user_read_date 
+    ON notifications(user_id, read_status, created_at DESC);
+
 -- ========== INSERTS ==========
 
 -- Insertar usuarios
@@ -115,13 +187,6 @@ INSERT INTO categories (name) VALUES
 ('Entretenimiento'),
 ('Educación');
 
--- Insertar posts
-INSERT INTO posts (user_id, title, content, image_url, category_id, created_at, updated_at) VALUES 
-(1, 'Cómo aprender SQL', 'SQL es un lenguaje fundamental para trabajar con bases de datos. En este artículo, aprenderás los conceptos básicos para comenzar...', 'https://mi-imagen.com/sql.jpg', 1, NOW(), NOW()),
-(2, 'Desarrollo web con JavaScript', 'JavaScript es el lenguaje de programación más popular para desarrollo web. En este artículo, exploramos sus características principales...', 'https://mi-imagen.com/javascript.jpg', 1, NOW(), NOW()),
-(3, 'Mejores prácticas de seguridad en bases de datos', 'En este post, revisamos las mejores prácticas para asegurar las bases de datos, protegiendo los datos sensibles de los usuarios...', 'https://mi-imagen.com/security.jpg', 1, NOW(), NOW()),
-(1, 'Introducción al diseño de interfaces de usuario', 'El diseño de interfaces de usuario es una parte clave del desarrollo de software. Este artículo cubre los principios básicos...', 'https://mi-imagen.com/ui-design.jpg', 1, NOW(), NOW()),
-(2, 'Cómo optimizar consultas SQL', 'Las consultas SQL son esenciales para el rendimiento de las bases de datos. Aquí discutimos algunas técnicas para optimizarlas...', 'https://mi-imagen.com/optimize-sql.jpg', 1, NOW(), NOW());
 
 -- Insertar proyectos
 INSERT INTO project (client_id, freelancer_id, title, description, budget, deadline, status, category_id, skills_required, priority) VALUES 
@@ -142,24 +207,7 @@ INSERT INTO reviews (project_id, reviewer_id, reviewed_id, rating, comment) VALU
 (1, 1, 5, 5, 'Excelente trabajo, cumplió con todos los requerimientos y entregó a tiempo.'),
 (2, 2, 3, 4, 'Buen trabajo, aunque hubo algunos retrasos menores.');
 
--- Tabla de skills
-CREATE TABLE IF NOT EXISTS skills (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
--- Tabla de relación entre freelancers y skills
-CREATE TABLE IF NOT EXISTS freelancer_skills (
-    id SERIAL PRIMARY KEY,
-    freelancer_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
-    skill_id INT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
-    proficiency_level INT CHECK (proficiency_level BETWEEN 1 AND 5),
-    years_of_experience DECIMAL(4,1),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(freelancer_id, skill_id)
-);
 
 -- Insertar algunos skills de ejemplo
 INSERT INTO skills (name, description) VALUES
@@ -185,18 +233,39 @@ INSERT INTO freelancer_skills (freelancer_id, skill_id, proficiency_level, years
 (5, 4, 4, 3.0),  -- TheNoob Master con Node.js
 (5, 6, 3, 1.5);  -- TheNoob Master con UI/UX Design
 
-CREATE TABLE IF NOT EXISTS event (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    day INT NOT NULL CHECK (day BETWEEN 1 AND 31),
-    month INT NOT NULL CHECK (month BETWEEN 1 AND 12),
-    year INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
-INSERT INTO event (user_id, title, day, month, year) VALUES
+
+INSERT INTO events (user_id, title, day, month, year) VALUES
 (1, 'App Móvil Fitness', 20, 5, 2025),
 (1, 'Workshop de React', 21, 5, 2025),
 (1, 'Blog Personal', 25, 5, 2025),
 (1, 'Networking Online', 29, 5, 2025);
+
+-- ====================================
+-- SEED DATA PARA NUEVAS ENTIDADES
+-- ====================================
+
+-- Datos para user_profiles (datos sociales)
+INSERT INTO user_profiles (user_id, avatar, bio, interests, profile_views, connections_count, is_verified, is_active, last_active_at) VALUES 
+(1, 'https://avatar.com/juan.jpg', 'Desarrollador full-stack con 5 años de experiencia', 'JavaScript,Node.js,React,SQL', 156, 34, true, true, NOW() - INTERVAL '2 hours'),
+(2, 'https://avatar.com/maria.jpg', 'Diseñadora UI/UX especializada en aplicaciones móviles', 'Design,UI/UX,Figma,Mobile', 89, 28, false, true, NOW() - INTERVAL '1 day'),
+(3, 'https://avatar.com/carlos.jpg', 'Project Manager con experiencia en equipos ágiles', 'Management,Scrum,Leadership', 203, 67, true, true, NOW() - INTERVAL '30 minutes'),
+(4, 'https://avatar.com/ana.jpg', 'Data Scientist y Machine Learning Engineer', 'Python,ML,Data Science,AI', 134, 45, false, true, NOW() - INTERVAL '3 hours');
+
+-- Datos para la nueva tabla posts (con estructura mejorada)
+INSERT INTO posts (user_id, author_name, author_avatar, title, content, image_url, category_id, likes_count, comments_count) VALUES 
+(1, 'Juan Pérez', 'https://avatar.com/juan.jpg', 'Cómo aprender SQL', 'SQL es un lenguaje fundamental para trabajar con bases de datos. En este artículo, aprenderás los conceptos básicos para comenzar...', 'https://mi-imagen.com/sql.jpg', 1, 23, 8),
+(2, 'María González', 'https://avatar.com/maria.jpg', 'Diseño UI/UX para móviles', 'Las mejores prácticas para crear interfaces intuitivas en aplicaciones móviles. Consejos y herramientas esenciales...', 'https://mi-imagen.com/ui-design.jpg', 2, 45, 12),
+(3, 'Carlos Rodríguez', 'https://avatar.com/carlos.jpg', 'Mejores prácticas de seguridad en bases de datos', 'En este post, revisamos las mejores prácticas para asegurar las bases de datos, protegiendo los datos sensibles de los usuarios...', 'https://mi-imagen.com/security.jpg', 1, 67, 15),
+(1, 'Juan Pérez', 'https://avatar.com/juan.jpg', 'Optimización de consultas SQL', 'Las consultas SQL son esenciales para el rendimiento de las bases de datos. Aquí discutimos algunas técnicas para optimizarlas...', 'https://mi-imagen.com/optimize-sql.jpg', 1, 34, 9),
+(2, 'María González', 'https://avatar.com/maria.jpg', 'Tendencias en UX 2025', 'Descubre las últimas tendencias en experiencia de usuario que dominarán este año...', 'https://mi-imagen.com/ux-trends.jpg', 2, 56, 18);
+
+-- Datos para notifications
+INSERT INTO notifications (user_id, message, type, priority, related_id, related_type) VALUES 
+(1, 'Carlos le dio like a tu post "Cómo aprender SQL"', 'like', 0, 1, 'post'),
+(1, 'Tienes una nueva propuesta de proyecto', 'opportunity', 2, 1, 'project'),
+(1, 'María comentó en tu post', 'comment', 1, 1, 'post'),
+(2, 'Tu proyecto "Desarrollo de API REST" ha sido actualizado', 'project_update', 1, 2, 'project'),
+(2, 'Nuevo mensaje privado de Juan', 'message', 2, 1, 'message'),
+(3, 'Tienes 5 nuevas conexiones pendientes', 'message', 1, NULL, NULL),
+(1, 'Tu post ha recibido 25 likes', 'like', 0, 2, 'post');
