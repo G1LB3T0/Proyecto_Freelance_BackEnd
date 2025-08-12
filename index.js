@@ -40,7 +40,7 @@ app.use((req, res, next) => {
 app.use('/api', loginRoutes);
 app.use('/register', registerRoutes);
 app.use('/ejemplo', ejemploRoutes);
-app.use('/posts', postRoutes);
+app.use('/api/posts', postRoutes);
 app.use('/api/freelancers', freelancerRoutes);
 app.use('/projects', projectRoutes);
 app.use('/api/events', eventRoutes);

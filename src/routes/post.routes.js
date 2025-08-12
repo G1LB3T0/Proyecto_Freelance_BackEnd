@@ -1,25 +1,31 @@
 const { Router } = require('express');
 const router = Router();
 
-// Importar los controladores desde un archivo separado
+// Importar los controladores actualizados
 const {
+    createPost,
     getPosts,
     getPostById,
-    getPostsByUserId,
-    getPostsByCategoryId,
-    createPost,
     updatePost,
     deletePost
-} = require('../controllers/post.Controllers.js'); // Asegúrate de que los controladores están en el archivo adecuado
+} = require('../controllers/post.Controllers.js');
 
-// Definición de las rutas
-router.get("/", getPosts);  // Obtener todos los posts
-router.get("/:id", getPostById);  // Obtener un post por ID
-router.get("/user/:userId", getPostsByUserId);  // Obtener posts por ID de usuario
-router.get("/category/:categoryId", getPostsByCategoryId);  // Obtener posts por ID de categoría
-router.post("/", createPost);  // Crear un nuevo post
-router.put("/:id", updatePost);  // Actualizar un post por ID
-router.delete("/:id", deletePost);  // Eliminar un post por ID
+// RUTAS PARA PUBLICACIONES
+
+// Crear nueva publicación
+router.post("/", createPost);
+
+// Obtener todas las publicaciones (con filtros y paginación)
+router.get("/", getPosts);
+
+// Obtener una publicación específica
+router.get("/:id", getPostById);
+
+// Actualizar una publicación
+router.put("/:id", updatePost);
+
+// Eliminar una publicación
+router.delete("/:id", deletePost);
 
 module.exports = router;
 
