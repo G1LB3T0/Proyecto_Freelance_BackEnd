@@ -97,14 +97,24 @@ CREATE TABLE IF NOT EXISTS freelancer_skills (
     UNIQUE(freelancer_id, skill_id)
 );
 
-CREATE TABLE IF NOT EXISTS events (
+CREATE TABLE IF NOT EXISTS event (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
+    description TEXT,
+    location VARCHAR(255),
+    event_date TIMESTAMP NOT NULL,
+    event_time VARCHAR(10),
+    category VARCHAR(100),
+    is_public BOOLEAN DEFAULT true,
+    max_attendees INTEGER,
+    current_attendees INTEGER DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'active',
     day INT NOT NULL CHECK (day BETWEEN 1 AND 31),
     month INT NOT NULL CHECK (month BETWEEN 1 AND 12),
     year INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS posts (
@@ -235,11 +245,56 @@ INSERT INTO freelancer_skills (freelancer_id, skill_id, proficiency_level, years
 
 
 
-INSERT INTO events (user_id, title, day, month, year) VALUES
-(1, 'App Móvil Fitness', 20, 5, 2025),
-(1, 'Workshop de React', 21, 5, 2025),
-(1, 'Blog Personal', 25, 5, 2025),
-(1, 'Networking Online', 29, 5, 2025);
+-- Datos de eventos próximos (upcoming events) para la home page
+INSERT INTO event (user_id, title, description, location, event_date, event_time, category, is_public, max_attendees, current_attendees, status, day, month, year) VALUES 
+(1, 'Conferencia de JavaScript 2025', 'Únete a la conferencia más grande de JavaScript del año. Aprende sobre las últimas tecnologías y frameworks como React 19, Node.js 20, y las nuevas herramientas de desarrollo.', 'Centro de Convenciones Tech', '2025-08-13 09:00:00', '09:00', 'Tecnología', true, 500, 247, 'active', 13, 8, 2025),
+(2, 'Workshop de React Avanzado', 'Taller práctico para desarrolladores que quieren llevar sus habilidades de React al siguiente nivel. Incluye hooks avanzados, context API y patterns de optimización.', 'Aula Virtual - Zoom', '2025-08-19 14:00:00', '14:00', 'Educación', true, 50, 35, 'active', 19, 8, 2025),
+(3, 'Networking para Freelancers', 'Evento de networking presencial para conectar freelancers, emprendedores y potenciales clientes. Incluye presentaciones de pitch de 2 minutos.', 'Coworking Space Downtown', '2025-09-11 18:30:00', '18:30', 'Networking', true, 100, 67, 'active', 11, 9, 2025),
+(1, 'Hackathon 48 horas - IA y Sostenibilidad', 'Competencia de desarrollo de aplicaciones enfocada en inteligencia artificial para soluciones sostenibles. Premios de $10,000 USD.', 'Universidad Tech - Campus Central', '2025-08-26 19:00:00', '19:00', 'Competencia', true, 200, 134, 'active', 26, 8, 2025),
+(4, 'Curso de UX/UI Design - Intensivo', 'Curso intensivo de diseño UX/UI para principiantes y profesionales. 3 días de inmersión total en metodologías de diseño centrado en el usuario.', 'Online - Plataforma propia', '2025-09-02 10:00:00', '10:00', 'Diseño', true, 75, 45, 'active', 2, 9, 2025),
+(2, 'Meetup de Node.js Developers', 'Encuentro mensual de desarrolladores de Node.js. Este mes: Microservicios con Fastify y mejores prácticas de deployment.', 'Café Tech Hub', '2025-08-15 19:00:00', '19:00', 'Tecnología', true, 40, 28, 'active', 15, 8, 2025),
+(3, 'Conferencia de Ciberseguridad', 'Evento especializado en las últimas tendencias de ciberseguridad, ethical hacking y protección de datos empresariales.', 'Hotel Marriott - Salón Principal', '2025-09-18 08:30:00', '08:30', 'Seguridad', true, 300, 189, 'active', 18, 9, 2025),
+
+-- NUEVOS EVENTOS AGREGADOS PARA MÁS VARIEDAD
+(5, 'Bootcamp de Python para Principiantes', 'Aprende Python desde cero en este intensivo de 3 días. Incluye ejercicios prácticos, proyectos reales y certificado de participación.', 'Academia de Programación Central', '2025-08-14 09:30:00', '09:30', 'Educación', true, 30, 18, 'active', 14, 8, 2025),
+
+(6, 'Taller de Marketing Digital para Freelancers', 'Estrategias efectivas de marketing digital específicamente diseñadas para freelancers. Aprende a posicionar tu marca personal.', 'Hub de Emprendimiento', '2025-08-17 10:00:00', '10:00', 'Marketing', true, 25, 12, 'active', 17, 8, 2025),
+
+(1, 'Conferencia de Machine Learning y AI', 'Explora las últimas tendencias en inteligencia artificial, machine learning y deep learning. Con expertos internacionales.', 'Centro de Convenciones Tech', '2025-08-20 08:00:00', '08:00', 'Tecnología', true, 400, 267, 'active', 20, 8, 2025),
+
+(2, 'Workshop de Figma y Prototipado', 'Domina Figma para crear prototipos interactivos y diseños colaborativos. Desde básico hasta avanzado en un día.', 'Estudio de Diseño Creativo', '2025-08-22 14:30:00', '14:30', 'Diseño', true, 20, 15, 'active', 22, 8, 2025),
+
+(4, 'Meetup de Data Science', 'Encuentro mensual de científicos de datos. Tema del mes: Análisis predictivo con Python y R. Networking incluido.', 'Café Data Lab', '2025-08-24 18:00:00', '18:00', 'Tecnología', true, 35, 22, 'active', 24, 8, 2025),
+
+(3, 'Conferencia de Blockchain y Criptomonedas', 'Todo lo que necesitas saber sobre blockchain, NFTs, DeFi y el futuro de las finanzas descentralizadas.', 'Auditorio Financiero', '2025-08-28 09:00:00', '09:00', 'Fintech', true, 250, 178, 'active', 28, 8, 2025),
+
+(5, 'Taller de Testing Automatizado', 'Aprende a implementar testing automatizado en tus aplicaciones. Cypress, Jest, Selenium y mejores prácticas.', 'Online - Plataforma Tech', '2025-08-30 16:00:00', '16:00', 'Tecnología', true, 40, 29, 'active', 30, 8, 2025),
+
+(6, 'Evento de Emprendimiento Tech', 'Presenta tu startup tech, conecta con inversores y conoce las últimas tendencias del ecosistema emprendedor.', 'Incubadora StartUp Valley', '2025-09-03 19:00:00', '19:00', 'Emprendimiento', true, 80, 54, 'active', 3, 9, 2025),
+
+(1, 'Workshop de DevOps y Kubernetes', 'Domina Docker, Kubernetes y las mejores prácticas de DevOps para deployments escalables y seguros.', 'Tech Training Center', '2025-09-05 10:30:00', '10:30', 'Tecnología', true, 45, 33, 'active', 5, 9, 2025),
+
+(2, 'Conferencia de Diseño UX/UI 2025', 'Los mejores diseñadores del país comparten sus experiencias, metodologías y casos de éxito en UX/UI.', 'Palacio de Convenciones', '2025-09-08 08:30:00', '08:30', 'Diseño', true, 300, 213, 'active', 8, 9, 2025),
+
+(4, 'Bootcamp de Project Management', 'Metodologías ágiles, Scrum, Kanban y herramientas modernas para gestionar proyectos exitosamente.', 'Instituto de Gestión', '2025-09-12 09:00:00', '09:00', 'Gestión', true, 60, 41, 'active', 12, 9, 2025),
+
+(3, 'Hackathon de Salud Digital', 'Desarrolla soluciones tecnológicas para el sector salud. Premios de $15,000 USD y mentoring incluido.', 'Hospital Tech Innovation', '2025-09-15 18:00:00', '18:00', 'Competencia', true, 150, 89, 'active', 15, 9, 2025),
+
+(5, 'Taller de APIs y Microservicios', 'Aprende a diseñar e implementar APIs RESTful y arquitectura de microservicios con Node.js y Spring Boot.', 'Centro de Desarrollo', '2025-09-20 15:00:00', '15:00', 'Tecnología', true, 35, 24, 'active', 20, 9, 2025),
+
+(6, 'Evento de Women in Tech', 'Celebramos a las mujeres en tecnología. Charlas inspiracionales, networking y oportunidades profesionales.', 'Auditorio Empresarial', '2025-09-25 17:30:00', '17:30', 'Networking', true, 120, 87, 'active', 25, 9, 2025),
+
+(1, 'Conferencia de Cloud Computing', 'AWS, Azure, Google Cloud y las mejores prácticas para migrar y optimizar aplicaciones en la nube.', 'Centro de Convenciones Tech', '2025-10-02 08:00:00', '08:00', 'Tecnología', true, 350, 198, 'active', 2, 10, 2025),
+
+(2, 'Workshop de Mobile Development', 'Desarrollo de aplicaciones móviles nativas y cross-platform. React Native, Flutter y Swift en un solo evento.', 'Mobile Dev Studio', '2025-10-05 13:00:00', '13:00', 'Tecnología', true, 50, 37, 'active', 5, 10, 2025),
+
+(4, 'Meetup de Freelancers Avanzados', 'Para freelancers experimentados: estrategias de pricing, gestión de clientes internacionales y escalamiento.', 'Coworking Premium', '2025-10-10 19:00:00', '19:00', 'Freelancing', true, 40, 28, 'active', 10, 10, 2025),
+
+(3, 'Conferencia de E-commerce y Fintech', 'Tendencias en comercio electrónico, payment gateways, y soluciones fintech para América Latina.', 'Hotel Business Center', '2025-10-15 09:30:00', '09:30', 'Fintech', true, 200, 142, 'active', 15, 10, 2025),
+
+-- Eventos pasados para testing
+(1, 'Meetup de JavaScript - Agosto', 'Evento pasado para testing de filtros de fechas', 'Café Tech Hub', '2025-08-01 18:00:00', '18:00', 'Tecnología', true, 30, 25, 'completed', 1, 8, 2025),
+(2, 'Workshop de CSS Grid', 'Evento pasado para testing', 'Online', '2025-07-28 15:00:00', '15:00', 'Educación', true, 25, 20, 'completed', 28, 7, 2025);
 
 -- ====================================
 -- SEED DATA PARA NUEVAS ENTIDADES

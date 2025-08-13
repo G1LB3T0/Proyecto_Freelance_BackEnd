@@ -5,7 +5,9 @@ const {
   getAllEvents,
   createEvent,
   updateEvent,
-  deleteEvent
+  deleteEvent,
+  getUpcomingEvents,
+  getEventByIdDetailed
 } = require('../controllers/event.controller');
 
 
@@ -15,8 +17,12 @@ router.use((req, res, next) => {
   next();
 });
 
+// NUEVAS RUTAS ESPECÍFICAS (PRIMERO - ANTES DE TODO)
+router.get('/upcoming', getUpcomingEvents);// RUTAS EXISTENTES  
 router.get('/', getAllEvents);
-router.post('/', createEvent);
+router.post('/', createEvent);// RUTAS DINÁMICAS (deben ir AL FINAL)
+router.get('/:id', getEventByIdDetailed);            // GET /api/events/:id
+router.get('/:id/detailed', getEventByIdDetailed);   // GET /api/events/:id/detailed (alternativa)
 router.put('/:id', updateEvent);
 router.delete('/:id', deleteEvent);
 
