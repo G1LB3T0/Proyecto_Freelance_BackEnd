@@ -26,17 +26,41 @@ app.use(express.urlencoded({ extended: true }));
 
 // Manejo de CORS
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const allowedOrigins = [
+        'http://localhost:5173', // Vite dev server (default)
+        'http://localhost:3001', // Tu frontend actual
+        'http://localhost:3000', // Backend mismo
+        'http://localhost:4173', // Vite preview
+        process.env.CORS_ORIGIN
+    ].filter(Boolean);
+    
+    const origin = req.headers.origin;
+    console.log('🔍 Origin recibido:', origin);
+    
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+        console.log('✅ CORS permitido para:', origin);
+    } else {
+        // Para desarrollo, permitir cualquier localhost
+        if (origin && origin.includes('localhost')) {
+            res.header('Access-Control-Allow-Origin', origin);
+            console.log('🔧 CORS permitido (localhost):', origin);
+        }
+    }
+    
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     if (req.method === 'OPTIONS') {
         res.header('Access-Control-Allow-Methods', 'PUT, POST, PATCH, DELETE, GET');
+        console.log('🔀 Preflight request para:', origin);
         return res.status(200).json({});
     }
     next();
 });
 
 // Rutas
-app.use('/api', loginRoutes);
+app.use('/login', loginRoutes);
 app.use('/register', registerRoutes);
 app.use('/ejemplo', ejemploRoutes);
 app.use('/posts', postRoutes);
