@@ -64,9 +64,18 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // Buscar usuario por email
+        // Buscar usuario por email e incluir sus detalles
         const user = await prisma.login.findUnique({
-            where: { email }
+            where: { email },
+            include: {
+                user_details: true  // Incluir los detalles del usuario
+            }
+        });
+
+        console.log('👤 Usuario encontrado:', {
+            id: user?.id,
+            username: user?.username,
+            user_details: user?.user_details
         });
 
         // Validar existencia del usuario
@@ -104,17 +113,31 @@ router.post('/login', async (req, res) => {
             { expiresIn: JWT_EXPIRES_IN }
         );
 
-        // Enviar respuesta con token y datos del usuario
+        // Preparar datos del usuario para la respuesta
+        const userData = {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            user_type: user.user_type,
+            name: user.name,
+            // Incluir datos de user_details si existen
+            first_name: user.user_details?.first_name || null,
+            last_name: user.user_details?.last_name || null,
+            phone: user.user_details?.phone || null,
+            country: user.user_details?.country || null,
+            full_name: user.user_details?.first_name && user.user_details?.last_name 
+                ? `${user.user_details.first_name} ${user.user_details.last_name}`
+                : user.name || user.username
+        };
+
+        console.log('📦 Datos de usuario preparados:', userData);
+
+        // Enviar respuesta con token y datos completos del usuario
         res.status(200).json({
             success: true,
             message: 'Login exitoso',
             data: {
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    user_type: user.user_type
-                },
+                user: userData,
                 token: token,
                 expiresIn: JWT_EXPIRES_IN
             }
