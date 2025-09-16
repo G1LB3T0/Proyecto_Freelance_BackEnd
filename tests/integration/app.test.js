@@ -3,10 +3,10 @@ import request from 'supertest'
 import { app } from '../../index.js'
 
 describe('API Endpoints', () => {
-  describe('GET /api', () => {
+  describe('GET /login', () => {
     it('debería obtener todos los usuarios', async () => {
       const response = await request(app)
-        .get('/api')
+        .get('/login')
         .expect(200)
 
       expect(response.body).toHaveProperty('success')
@@ -16,10 +16,10 @@ describe('API Endpoints', () => {
     })
   })
 
-  describe('POST /api/login', () => {
+  describe('POST /login/login', () => {
     it('debería rechazar login con credenciales inválidas', async () => {
       const response = await request(app)
-        .post('/api/login')
+        .post('/login/login')
         .send({
           email: 'usuario_inexistente@test.com',
           password: 'password_incorrecto'
@@ -34,7 +34,7 @@ describe('API Endpoints', () => {
 
     it('debería aceptar login con credenciales válidas', async () => {
       const response = await request(app)
-        .post('/api/login')
+        .post('/login/login')
         .send({
           email: 'jperez@gmail.com',
           password: 'donjuan217'

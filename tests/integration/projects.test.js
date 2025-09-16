@@ -1,15 +1,32 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { app } from '../../index.js'
+import { getAuthToken, createAuthHeaders, authenticateRequest, getAllAuthTokens } from '../helpers/auth.js'
 
 describe('Projects API', () => {
   let testProjectId
   let testProposalId
+  let tokens = {}
+
+  beforeAll(async () => {
+    // Obtener tokens para diferentes tipos de usuarios
+    tokens = await getAllAuthTokens()
+  })
 
   describe('GET /projects', () => {
-    it('debería obtener todos los proyectos', async () => {
+    it('debería rechazar acceso sin autenticación', async () => {
       const response = await request(app)
         .get('/projects')
+        .expect(401)
+
+      expect(response.body).toHaveProperty('success')
+      expect(response.body.success).toBe(false)
+    })
+
+    it('debería obtener todos los proyectos con autenticación', async () => {
+      const response = await request(app)
+        .get('/projects')
+        .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
         .expect(200)
 
       expect(response.body).toHaveProperty('success')
@@ -20,14 +37,27 @@ describe('Projects API', () => {
   })
 
   describe('GET /projects/:id', () => {
-    it('debería obtener un proyecto específico por ID', async () => {
+    it('debería rechazar acceso sin autenticación', async () => {
+      const response = await request(app)
+        .get('/projects/1')
+        .expect(401)
+
+      expect(response.body).toHaveProperty('success')
+      expect(response.body.success).toBe(false)
+    })
+
+    it('debería obtener un proyecto específico por ID con autenticación', async () => {
       // Primero obtener todos los proyectos para tener un ID válido
-      const projectsResponse = await request(app).get('/projects')
+      const projectsResponse = await request(app)
+        .get('/projects')
+        .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
+
       const firstProject = projectsResponse.body.data[0]
-      
+
       if (firstProject) {
         const response = await request(app)
           .get(`/projects/${firstProject.id}`)
+          .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
           .expect(200)
 
         expect(response.body).toHaveProperty('success')
@@ -45,6 +75,7 @@ describe('Projects API', () => {
     it('debería devolver 404 para un proyecto inexistente', async () => {
       const response = await request(app)
         .get('/projects/99999')
+        .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
         .expect(404)
 
       expect(response.body).toHaveProperty('success')

@@ -10,6 +10,8 @@ const registerRoutes = require('./src/routes/register.routes');
 const postRoutes = require('./src/routes/post.routes');
 const freelancerRoutes = require('./src/routes/freelancer.routes');
 const projectRoutes = require('./src/routes/project.routes');
+const proposalRoutes = require('./src/routes/proposal.routes');
+const reviewRoutes = require('./src/routes/review.routes');
 const eventRoutes = require('./src/routes/event.routes');
 
 const app = express();
@@ -33,10 +35,10 @@ app.use((req, res, next) => {
         'http://localhost:4173', // Vite preview
         process.env.CORS_ORIGIN
     ].filter(Boolean);
-    
+
     const origin = req.headers.origin;
     console.log('🔍 Origin recibido:', origin);
-    
+
     if (allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
         console.log('✅ CORS permitido para:', origin);
@@ -47,10 +49,10 @@ app.use((req, res, next) => {
             console.log('🔧 CORS permitido (localhost):', origin);
         }
     }
-    
+
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
-    
+
     if (req.method === 'OPTIONS') {
         res.header('Access-Control-Allow-Methods', 'PUT, POST, PATCH, DELETE, GET');
         console.log('🔀 Preflight request para:', origin);
@@ -66,6 +68,8 @@ app.use('/ejemplo', ejemploRoutes);
 app.use('/posts', postRoutes);
 app.use('/api/freelancers', freelancerRoutes);
 app.use('/projects', projectRoutes);
+app.use('/proposals', proposalRoutes);
+app.use('/reviews', reviewRoutes);
 app.use('/api/events', eventRoutes);
 
 // Manejo de errores para rutas no encontradas
