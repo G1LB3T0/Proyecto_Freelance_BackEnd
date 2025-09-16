@@ -1,38 +1,14 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { authMiddleware } = require('../middleware/auth');
+const prisma = require('../database/db');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Configuración JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_super_segura';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
-
-// Middleware para verificar token
-const verifyToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-    if (!token) {
-        return res.status(401).json({
-            success: false,
-            message: 'Token de acceso requerido'
-        });
-    }
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        return res.status(403).json({
-            success: false,
-            message: 'Token inválido o expirado'
-        });
-    }
-};
 
 // Ruta para obtener todos los usuarios
 router.get('/', async (req, res) => {
@@ -87,7 +63,7 @@ router.post('/login', async (req, res) => {
         }
 
         // Validar contraseña (usando bcrypt si está hasheada, sino comparación directa)
-        const isPasswordValid = user.password.startsWith('$2b$') 
+        const isPasswordValid = user.password.startsWith('$2b$')
             ? await bcrypt.compare(password, user.password)
             : user.password === password;
 
@@ -125,7 +101,7 @@ router.post('/login', async (req, res) => {
             last_name: user.user_details?.last_name || null,
             phone: user.user_details?.phone || null,
             country: user.user_details?.country || null,
-            full_name: user.user_details?.first_name && user.user_details?.last_name 
+            full_name: user.user_details?.first_name && user.user_details?.last_name
                 ? `${user.user_details.first_name} ${user.user_details.last_name}`
                 : user.name || user.username
         };
@@ -154,9 +130,9 @@ router.post('/login', async (req, res) => {
 });
 
 // Ruta para verificar si el token es válido
-router.get('/verify', verifyToken, async (req, res) => {
+router.get('/verify', authMiddleware, async (req, res) => {
     try {
-        // El middleware ya verificó el token, req.user contiene los datos
+        // El middleware ya verificó el token y cargó datos actualizados del usuario
         res.status(200).json({
             success: true,
             message: 'Token válido',
@@ -174,7 +150,7 @@ router.get('/verify', verifyToken, async (req, res) => {
 });
 
 // Ruta para refrescar token
-router.post('/refresh', verifyToken, async (req, res) => {
+router.post('/refresh', authMiddleware, async (req, res) => {
     try {
         // Generar nuevo token con los datos actuales del usuario
         const newTokenPayload = {

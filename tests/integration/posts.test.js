@@ -1,21 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import request from 'supertest'
 import { app } from '../../index.js'
+import { getAuthToken, createAuthHeaders, authenticateRequest } from '../helpers/auth.js'
 
 describe('Posts API', () => {
   let testPostId
   let authToken
 
   beforeAll(async () => {
-    // Obtener token de autenticación para tests
-    const loginResponse = await request(app)
-      .post('/api/login')
-      .send({
-        email: 'jperez@gmail.com',
-        password: 'donjuan217'
-      })
-    
-    authToken = loginResponse.body.data.token
+    // Obtener token de autenticación para tests usando el helper
+    authToken = await getAuthToken('existing')
   })
 
   describe('GET /posts', () => {
@@ -36,7 +30,7 @@ describe('Posts API', () => {
       // Primero obtener todos los posts para tener un ID válido
       const postsResponse = await request(app).get('/posts')
       const firstPost = postsResponse.body.data[0]
-      
+
       if (firstPost) {
         const response = await request(app)
           .get(`/posts/${firstPost.id}`)
