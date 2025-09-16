@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { app } from '../index.js'
+import { app } from '../../index.js'
 
 // Credenciales de usuarios de test (deben existir en tu base de datos de test)
 export const TEST_USERS = {
