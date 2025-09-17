@@ -170,4 +170,16 @@ exports.updatePost = async (req, res) => {
     }
 };
 
-// Crear una nueva publicación
+// Eliminar un post
+exports.deletePost = async (req, res) => {
+    const { id } = req.params;
+    try {
+        await prisma.posts.delete({
+            where: { id: Number(id) }
+        });
+        res.json({ success: true, message: 'Post eliminado correctamente' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: 'Error al eliminar post' });
+    }
+};
