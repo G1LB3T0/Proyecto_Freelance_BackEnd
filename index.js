@@ -14,8 +14,6 @@ const proposalRoutes = require('./src/routes/proposal.routes');
 const reviewRoutes = require('./src/routes/review.routes');
 const eventRoutes = require('./src/routes/event.routes');
 const userRoutes = require('./src/routes/user.routes');
-const proposalRoutes = require('./src/routes/proposal.routes');
-const reviewRoutes = require('./src/routes/review.routes');
 const configurationRoutes = require('./src/routes/configuration.routes');
 
 const app = express();
