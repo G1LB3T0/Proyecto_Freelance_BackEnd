@@ -99,7 +99,7 @@ router.post('/login', async (req, res) => {
             // Incluir datos de user_details si existen
             first_name: user.user_details?.first_name || null,
             last_name: user.user_details?.last_name || null,
-            phone: user.user_details?.phone || null,
+            phone: user.user_details?.phone_e164 || null,
             country: user.user_details?.country || null,
             full_name: user.user_details?.first_name && user.user_details?.last_name
                 ? `${user.user_details.first_name} ${user.user_details.last_name}`

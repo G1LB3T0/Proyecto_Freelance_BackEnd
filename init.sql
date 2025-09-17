@@ -16,13 +16,28 @@ CREATE TABLE IF NOT EXISTS user_details (
     user_id INT UNIQUE NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
     first_name VARCHAR(50),
     last_name VARCHAR(50),
-    phone VARCHAR(20) UNIQUE,
+    phone_e164 VARCHAR(20) UNIQUE,
+    bio TEXT,
+    profile_picture VARCHAR(500),
+    website_url VARCHAR(500),
+    location VARCHAR(150),
     date_of_birth DATE,
     gender VARCHAR(10),
     country VARCHAR(100),
     postal_code VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de links sociales de usuarios
+CREATE TABLE IF NOT EXISTS user_social_links (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES user_details(id) ON DELETE CASCADE,
+    platform VARCHAR(50) NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, platform)
 );
 
 -- Tabla de categorías
@@ -182,13 +197,13 @@ INSERT INTO login_credentials (username, email, password, user_type, name) VALUE
 ('karla98', 'karlafernandez@gmail.com', 'karlaf98', 'project_manager', 'Karla Fernández');
 
 -- Insertar detalles de usuarios
-INSERT INTO user_details (user_id, first_name, last_name, phone, date_of_birth, gender, country, postal_code) VALUES
-(1, 'Juan', 'Perez', '12345678', '1995-03-15', 'Male', 'Guatemala', '01001'),
-(2, 'Pablo', 'Hernan', '87654321', '1999-06-15', 'Male', 'Guatemala', '01001'),
-(3, 'Carlos', 'Sanchez', '12348765', '2000-03-15', 'Male', 'Guatemala', '01001'),
-(4, 'Laura', 'Ramirez', '87651234', '2004-03-15', 'Female', 'Guatemala', '01001'),
-(5, 'TheNoob', 'Master', '24681357', '2005-04-09', 'Male', 'Guatemala', '01001'),
-(6, 'Karla', 'Fernandez', '98765432', '1998-05-10', 'Female', 'Guatemala', '01002');
+INSERT INTO user_details (user_id, first_name, last_name, phone_e164, date_of_birth, gender, country, postal_code) VALUES
+(1, 'Juan', 'Perez', '+50212345678', '1995-03-15', 'Male', 'Guatemala', '01001'),
+(2, 'Pablo', 'Hernan', '+50287654321', '1999-06-15', 'Male', 'Guatemala', '01001'),
+(3, 'Carlos', 'Sanchez', '+50212348765', '2000-03-15', 'Male', 'Guatemala', '01001'),
+(4, 'Laura', 'Ramirez', '+50287651234', '2004-03-15', 'Female', 'Guatemala', '01001'),
+(5, 'TheNoob', 'Master', '+50224681357', '2005-04-09', 'Male', 'Guatemala', '01001'),
+(6, 'Karla', 'Fernandez', '+50298765432', '1998-05-10', 'Female', 'Guatemala', '01002');
 
 -- Insertar categorías
 INSERT INTO categories (name) VALUES 

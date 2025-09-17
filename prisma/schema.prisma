@@ -36,8 +36,7 @@ model user_details {
   user_id           Int                 @unique
   first_name        String?             @db.VarChar(50)
   last_name         String?             @db.VarChar(50)
-  phone             String?             @unique @db.VarChar(20)
-  phone_e164        String?             @db.VarChar(20)
+  phone_e164        String?             @unique @db.VarChar(20)
   bio               String?             @db.Text
   profile_picture   String?             @db.VarChar(500)
   website_url       String?             @db.VarChar(500)
