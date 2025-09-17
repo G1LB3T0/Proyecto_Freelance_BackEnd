@@ -19,14 +19,15 @@ const authMiddleware = async (req, res, next) => {
 
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        // Obtener información del usuario desde tu tabla `Login` (mapeada a login_credentials)
+        // Obtener información del usuario desde tu tabla `Login`
         const user = await prisma.login.findUnique({
             where: { id: decoded.id },
             select: {
                 id: true,
                 username: true,
                 email: true,
-                user_type: true  // Tu campo de rol
+                user_type: true,
+                name: true
             }
         });
 
@@ -48,7 +49,7 @@ const authMiddleware = async (req, res, next) => {
     }
 };
 
-// Middleware de roles (adaptado a tu campo `user_type`)
+
 const roleMiddleware = (allowedUserTypes) => {
     return (req, res, next) => {
         if (!req.user) {

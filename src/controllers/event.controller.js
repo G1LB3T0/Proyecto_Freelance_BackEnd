@@ -85,6 +85,113 @@ const updateEvent = async (req, res) => {
   }
 };
 
+const getUpcomingEvents = async (req, res) => {
+  try {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentDay = currentDate.getDate();
+
+    // Obtener eventos próximos (desde hoy en adelante)
+    const upcomingEvents = await prisma.event.findMany({
+      where: {
+        OR: [
+          // Eventos del año siguiente o posterior
+          { year: { gt: currentYear } },
+          // Eventos del mismo año pero meses futuros
+          {
+            AND: [
+              { year: currentYear },
+              { month: { gt: currentMonth } }
+            ]
+          },
+          // Eventos del mismo año y mes pero días futuros o igual a hoy
+          {
+            AND: [
+              { year: currentYear },
+              { month: currentMonth },
+              { day: { gte: currentDay } }
+            ]
+          }
+        ]
+      },
+      include: {
+        login_credentials: {
+          select: {
+            name: true,
+            user_details: {
+              select: {
+                first_name: true,
+                last_name: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: [
+        { year: 'asc' },
+        { month: 'asc' },
+        { day: 'asc' }
+      ]
+    });
+
+    res.json({
+      success: true,
+      count: upcomingEvents.length,
+      data: upcomingEvents
+    });
+  } catch (err) {
+    console.error('Error al obtener eventos próximos:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener eventos próximos'
+    });
+  }
+};
+
+const getEventByIdDetailed = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const event = await prisma.event.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        login_credentials: {
+          select: {
+            name: true,
+            email: true,
+            user_details: {
+              select: {
+                first_name: true,
+                last_name: true,
+                phone: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: 'Evento no encontrado'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: event
+    });
+  } catch (err) {
+    console.error('Error al obtener evento detallado:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener evento detallado'
+    });
+  }
+};
+
 // DELETE /api/events/:id
 const deleteEvent = async (req, res) => {
   try {
@@ -102,199 +209,6 @@ const deleteEvent = async (req, res) => {
     } else {
       res.status(400).json({ error: 'Error al eliminar evento: ' + err.message });
     }
-  }
-};
-
-// ===== NUEVAS FUNCIONES PARA UPCOMING EVENTS =====
-
-// Obtener eventos próximos (upcoming events) - Versión adaptada al esquema actual
-const getUpcomingEvents = async (req, res) => {
-  try {
-    const {
-      limit = 10,
-      user_id
-    } = req.query;
-
-    // Obtener la fecha actual
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
-    const currentDay = now.getDate();
-
-    // Construir filtros para eventos futuros basados en day/month/year
-    const whereConditions = {
-      OR: [
-        // Eventos en años futuros
-        { year: { gt: currentYear } },
-        // Eventos en el año actual pero en meses futuros
-        {
-          AND: [
-            { year: currentYear },
-            { month: { gt: currentMonth } }
-          ]
-        },
-        // Eventos en el año y mes actual pero en días futuros
-        {
-          AND: [
-            { year: currentYear },
-            { month: currentMonth },
-            { day: { gte: currentDay } }
-          ]
-        }
-      ]
-    };
-
-    // Filtro por usuario específico (si se proporciona)
-    if (user_id) {
-      whereConditions.user_id = parseInt(user_id);
-    }
-
-    // Obtener eventos próximos con información del organizador
-    const upcomingEvents = await prisma.event.findMany({
-      where: whereConditions,
-      include: {
-        login_credentials: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            user_type: true
-          }
-        }
-      },
-      // Ordenar por fecha (año, mes, día)
-      orderBy: [
-        { year: 'asc' },
-        { month: 'asc' },
-        { day: 'asc' },
-        { created_at: 'desc' }
-      ],
-      take: parseInt(limit)
-    });
-
-    // Formatear la respuesta para el frontend
-    const formattedEvents = upcomingEvents.map(event => {
-      // Crear una fecha para calcular días hasta el evento
-      const eventDate = new Date(event.year, event.month - 1, event.day);
-      const daysUntil = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 24));
-
-      return {
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        location: event.location,
-        event_date: {
-          day: event.day,
-          month: event.month,
-          year: event.year,
-          formatted: eventDate.toISOString().split('T')[0] // YYYY-MM-DD
-        },
-        event_time: event.event_time,
-        category: event.category,
-        is_public: event.is_public,
-        attendees: {
-          current: event.current_attendees || 0,
-          max: event.max_attendees,
-          available: event.max_attendees ? event.max_attendees - (event.current_attendees || 0) : null,
-          percentage: event.max_attendees ? Math.round(((event.current_attendees || 0) / event.max_attendees) * 100) : null
-        },
-        organizer: {
-          id: event.login_credentials.id,
-          name: event.login_credentials.name,
-          username: event.login_credentials.username,
-          user_type: event.login_credentials.user_type
-        },
-        status: event.status,
-        created_at: event.created_at,
-        days_until: daysUntil
-      };
-    });
-
-    res.json({
-      success: true,
-      data: {
-        events: formattedEvents,
-        total: formattedEvents.length,
-        message: `Se encontraron ${formattedEvents.length} eventos próximos`
-      }
-    });
-
-  } catch (error) {
-    console.error('Error al obtener eventos próximos:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error interno del servidor',
-      details: error.message
-    });
-  }
-};
-
-// Obtener un evento específico por ID (versión mejorada)
-const getEventByIdDetailed = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const event = await prisma.event.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        login_credentials: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            user_type: true
-          }
-        }
-      }
-    });
-
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        error: 'Evento no encontrado'
-      });
-    }
-
-    // Formatear respuesta
-    const formattedEvent = {
-      id: event.id,
-      title: event.title,
-      description: event.description,
-      location: event.location,
-      event_date: event.event_date,
-      event_time: event.event_time,
-      category: event.category,
-      is_public: event.is_public,
-      attendees: {
-        current: event.current_attendees,
-        max: event.max_attendees,
-        available: event.max_attendees ? event.max_attendees - event.current_attendees : null,
-        percentage: event.max_attendees ? Math.round((event.current_attendees / event.max_attendees) * 100) : null
-      },
-      organizer: {
-        id: event.login_credentials.id,
-        name: event.login_credentials.name,
-        username: event.login_credentials.username,
-        user_type: event.login_credentials.user_type
-      },
-      status: event.status,
-      created_at: event.created_at,
-      updated_at: event.updated_at,
-      days_until: Math.ceil((new Date(event.event_date) - new Date()) / (1000 * 60 * 60 * 24))
-    };
-
-    res.json({
-      success: true,
-      data: formattedEvent
-    });
-
-  } catch (error) {
-    console.error('Error al obtener evento:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error interno del servidor',
-      details: error.message
-    });
   }
 };
 

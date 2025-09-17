@@ -1,75 +1,55 @@
 /**
- * Función para insertar datos semilla (seed data) de forma segura
- * Solo inserta datos si no existen, preservando datos existentes
+ * Función para verificar y completar datos faltantes después de init.sql
+ * Solo actúa como verificador, no duplica datos
  */
 async function seedDatabase(pool) {
     const client = await pool.connect();
 
     try {
-        console.log('🌱 Iniciando proceso de seeding de la base de datos...');
+        console.log('🔍 Verificando integridad de datos post-init.sql...');
 
-        // 1. Insertar categorías básicas si no existen
-        await seedCategories(client);
+        // 1. Verificar que existan categorías mínimas
+        await verifyMinimalData(client);
 
-        // 2. Insertar skills básicas si no existen
-        await seedSkills(client);
-
-        // 3. Insertar usuarios de ejemplo si no existen
-        await seedUsers(client);
-
-        // 4. Insertar datos de ejemplo adicionales si no existen
-        await seedExampleData(client);
-
-        console.log('✅ Proceso de seeding completado exitosamente');
+        console.log('✅ Verificación de datos completada exitosamente');
 
     } catch (error) {
-        console.error('❌ Error durante el seeding:', error);
+        console.error('❌ Error durante la verificación:', error);
         throw error;
     } finally {
         client.release();
     }
 }
 
-async function seedCategories(client) {
-    const categories = [
-        'Tecnología',
-        'Salud',
-        'Deportes',
-        'Entretenimiento',
-        'Educación'
-    ];
+async function verifyMinimalData(client) {
+    // Verificar categorías
+    const { rows: categories } = await client.query('SELECT COUNT(*) FROM categories');
+    const categoryCount = parseInt(categories[0].count);
 
-    for (const category of categories) {
-        await client.query(`
-            INSERT INTO categories (name) 
-            VALUES ($1) 
-            ON CONFLICT DO NOTHING
-        `, [category]);
+    if (categoryCount === 0) {
+        console.log('⚠️ No hay categorías, añadiendo básicas...');
+        const basicCategories = ['Tecnología', 'Diseño', 'Marketing', 'Escritura', 'Traducción'];
+
+        for (const category of basicCategories) {
+            await client.query(`INSERT INTO categories (name) VALUES ($1) ON CONFLICT DO NOTHING`, [category]);
+        }
+        console.log('📁 Categorías básicas insertadas');
+    } else {
+        console.log(`📁 ${categoryCount} categorías verificadas`);
     }
-    console.log('📁 Categorías básicas verificadas/insertadas');
+
+    // Verificar usuarios
+    const { rows: users } = await client.query('SELECT COUNT(*) FROM login_credentials');
+    const userCount = parseInt(users[0].count);
+    console.log(`👥 ${userCount} usuarios verificados en la base de datos`);
+
+    // Verificar skills
+    const { rows: skills } = await client.query('SELECT COUNT(*) FROM skills');
+    const skillCount = parseInt(skills[0].count);
+    console.log(`🛠️ ${skillCount} skills verificadas en la base de datos`);
 }
 
-async function seedSkills(client) {
-    const skills = [
-        ['JavaScript', 'Lenguaje de programación para desarrollo web'],
-        ['Python', 'Lenguaje de programación versátil y fácil de aprender'],
-        ['React', 'Biblioteca JavaScript para construir interfaces de usuario'],
-        ['Node.js', 'Entorno de ejecución para JavaScript del lado del servidor'],
-        ['SQL', 'Lenguaje para gestionar bases de datos relacionales'],
-        ['UI/UX Design', 'Diseño de interfaces y experiencia de usuario'],
-        ['Project Management', 'Gestión y coordinación de proyectos'],
-        ['DevOps', 'Prácticas que combinan desarrollo de software y operaciones']
-    ];
-
-    for (const [name, description] of skills) {
-        await client.query(`
-            INSERT INTO skills (name, description) 
-            VALUES ($1, $2) 
-            ON CONFLICT (name) DO NOTHING
-        `, [name, description]);
-    }
-    console.log('🛠️ Skills básicas verificadas/insertadas');
-}
+module.exports = { seedDatabase };
 
 async function seedUsers(client) {
     // Solo insertar usuarios de ejemplo si no existe ningún usuario
