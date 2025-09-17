@@ -85,6 +85,113 @@ const updateEvent = async (req, res) => {
   }
 };
 
+const getUpcomingEvents = async (req, res) => {
+  try {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentDay = currentDate.getDate();
+
+    // Obtener eventos próximos (desde hoy en adelante)
+    const upcomingEvents = await prisma.event.findMany({
+      where: {
+        OR: [
+          // Eventos del año siguiente o posterior
+          { year: { gt: currentYear } },
+          // Eventos del mismo año pero meses futuros
+          {
+            AND: [
+              { year: currentYear },
+              { month: { gt: currentMonth } }
+            ]
+          },
+          // Eventos del mismo año y mes pero días futuros o igual a hoy
+          {
+            AND: [
+              { year: currentYear },
+              { month: currentMonth },
+              { day: { gte: currentDay } }
+            ]
+          }
+        ]
+      },
+      include: {
+        login_credentials: {
+          select: {
+            name: true,
+            user_details: {
+              select: {
+                first_name: true,
+                last_name: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: [
+        { year: 'asc' },
+        { month: 'asc' },
+        { day: 'asc' }
+      ]
+    });
+
+    res.json({
+      success: true,
+      count: upcomingEvents.length,
+      data: upcomingEvents
+    });
+  } catch (err) {
+    console.error('Error al obtener eventos próximos:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener eventos próximos'
+    });
+  }
+};
+
+const getEventByIdDetailed = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const event = await prisma.event.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        login_credentials: {
+          select: {
+            name: true,
+            email: true,
+            user_details: {
+              select: {
+                first_name: true,
+                last_name: true,
+                phone: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: 'Evento no encontrado'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: event
+    });
+  } catch (err) {
+    console.error('Error al obtener evento detallado:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener evento detallado'
+    });
+  }
+};
+
 // DELETE /api/events/:id
 const deleteEvent = async (req, res) => {
   try {
@@ -109,5 +216,7 @@ module.exports = {
   getAllEvents,
   createEvent,
   updateEvent,
-  deleteEvent
+  deleteEvent,
+  getUpcomingEvents,
+  getEventByIdDetailed
 };

@@ -6,25 +6,23 @@ const { authMiddleware, validateOwnership } = require('../middleware/auth');
 
 // Importar los controladores desde un archivo separado
 const {
+    createPost,
     getPosts,
     getPostById,
-    getPostsByUserId,
-    getPostsByCategoryId,
-    createPost,
     updatePost,
     deletePost
-} = require('../controllers/post.Controllers.js'); // Asegúrate de que los controladores están en el archivo adecuado
+} = require('../controllers/post.Controllers.js');
 
-// Definición de las rutas
-router.get("/", getPosts);  // Obtener todos los posts (público)
-router.get("/:id", getPostById);  // Obtener un post por ID (público)
-router.get("/user/:userId", getPostsByUserId);  // Obtener posts por ID de usuario (público)
-router.get("/category/:categoryId", getPostsByCategoryId);  // Obtener posts por ID de categoría (público)
+// RUTAS PARA PUBLICACIONES
+
+// Rutas públicas
+router.get("/", getPosts);  // Obtener todos los posts (con filtros y paginación)
+router.get("/:id", getPostById);  // Obtener un post por ID
 
 // Rutas protegidas
-router.post("/", authMiddleware, createPost);  // Crear un nuevo post (requiere autenticación)
-router.put("/:id", authMiddleware, validateOwnership('posts', 'id', 'params', 'user_id'), updatePost);  // Actualizar un post por ID (solo el dueño)
-router.delete("/:id", authMiddleware, validateOwnership('posts', 'id', 'params', 'user_id'), deletePost);  // Eliminar un post por ID (solo el dueño)
+router.post("/", authMiddleware, createPost);  // Crear nueva publicación
+router.put("/:id", authMiddleware, updatePost);  // Actualizar una publicación
+router.delete("/:id", authMiddleware, deletePost);  // Eliminar una publicación
 
 module.exports = router;
 

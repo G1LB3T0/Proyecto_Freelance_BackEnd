@@ -19,14 +19,15 @@ const authMiddleware = async (req, res, next) => {
 
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        // Obtener información del usuario desde tu tabla `Login` (mapeada a login_credentials)
+        // Obtener información del usuario desde tu tabla `Login`
         const user = await prisma.login.findUnique({
             where: { id: decoded.id },
             select: {
                 id: true,
                 username: true,
                 email: true,
-                user_type: true  // Tu campo de rol
+                user_type: true,
+                name: true
             }
         });
 
@@ -78,13 +79,13 @@ const clientOnly = roleMiddleware(['client', 'project_manager']);
 // Middleware para cualquier usuario autenticado
 const anyAuthenticated = roleMiddleware(['freelancer', 'client', 'project_manager', 'admin']);
 
-// Middleware de validación de ownership - Opción C
+// Middleware de validación de ownership
 const validateOwnership = (options = {}) => {
     const {
-        idField = 'client_id',           // Campo a validar
-        source = 'body',                 // 'body', 'params', o 'query'
-        allowedRoles = ['client', 'project_manager', 'admin'],  // Roles que pueden validar ownership
-        skipForRoles = ['admin']         // Roles que pueden saltarse la validación
+        idField = 'client_id',
+        source = 'body',
+        allowedRoles = ['client', 'project_manager', 'admin'],
+        skipForRoles = ['admin']
     } = options;
 
     return (req, res, next) => {

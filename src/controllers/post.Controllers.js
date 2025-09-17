@@ -1,16 +1,79 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Obtener todos los posts
+// Obtener todos los posts con filtros y paginación
 exports.getPosts = async (req, res) => {
     try {
+        const {
+            page = 1,
+            limit = 10,
+            category_id,
+            user_id: filter_user_id,
+            search
+        } = req.query;
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        // Construir filtros dinámicamente
+        const where = {};
+
+        if (category_id) {
+            where.category_id = parseInt(category_id);
+        }
+
+        if (filter_user_id) {
+            where.user_id = parseInt(filter_user_id);
+        }
+
+        if (search) {
+            where.OR = [
+                { title: { contains: search, mode: 'insensitive' } },
+                { content: { contains: search, mode: 'insensitive' } }
+            ];
+        }
+
+        // Obtener posts con información relacionada
         const posts = await prisma.posts.findMany({
-            include: { login_credentials: true, categories: true }
+            where,
+            include: {
+                categories: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            },
+            skip: offset,
+            take: parseInt(limit)
         });
-        res.json({ success: true, data: posts });
+
+        // Contar total para paginación
+        const total = await prisma.posts.count({ where });
+
+        res.json({
+            success: true,
+            data: {
+                posts,
+                pagination: {
+                    current_page: parseInt(page),
+                    total_pages: Math.ceil(total / parseInt(limit)),
+                    total_posts: total,
+                    posts_per_page: parseInt(limit),
+                    has_next_page: offset + parseInt(limit) < total,
+                    has_prev_page: parseInt(page) > 1
+                }
+            }
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, error: 'Error al obtener posts' });
+        console.error('Error al obtener publicaciones:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error interno del servidor',
+            details: error.message
+        });
     }
 };
 
@@ -111,8 +174,10 @@ exports.updatePost = async (req, res) => {
 exports.deletePost = async (req, res) => {
     const { id } = req.params;
     try {
-        await prisma.posts.delete({ where: { id: Number(id) } });
-        res.json({ success: true, message: 'Post eliminado' });
+        await prisma.posts.delete({
+            where: { id: Number(id) }
+        });
+        res.json({ success: true, message: 'Post eliminado correctamente' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, error: 'Error al eliminar post' });
