@@ -29,7 +29,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://pgadmin:secret@db:5432/freelance_db
       - NODE_ENV=development
-      - JWT_SECRET=password
+      - JWT_SECRET=tu_clave_super_secreta_para_jwt_freelance_2025_beto_branch
+      - JWT_EXPIRES_IN=24h
+      - PORT=3000
+      - CORS_ORIGIN=http://localhost:5173
     restart: unless-stopped
 
 volumes:

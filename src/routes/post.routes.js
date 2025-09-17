@@ -1,7 +1,10 @@
 const { Router } = require('express');
 const router = Router();
 
-// Importar los controladores actualizados
+// Importar middleware de autenticación
+const { authMiddleware, validateOwnership } = require('../middleware/auth');
+
+// Importar los controladores desde un archivo separado
 const {
     createPost,
     getPosts,
@@ -12,20 +15,14 @@ const {
 
 // RUTAS PARA PUBLICACIONES
 
-// Crear nueva publicación
-router.post("/", createPost);
+// Rutas públicas
+router.get("/", getPosts);  // Obtener todos los posts (con filtros y paginación)
+router.get("/:id", getPostById);  // Obtener un post por ID
 
-// Obtener todas las publicaciones (con filtros y paginación)
-router.get("/", getPosts);
-
-// Obtener una publicación específica
-router.get("/:id", getPostById);
-
-// Actualizar una publicación
-router.put("/:id", updatePost);
-
-// Eliminar una publicación
-router.delete("/:id", deletePost);
+// Rutas protegidas
+router.post("/", authMiddleware, createPost);  // Crear nueva publicación
+router.put("/:id", authMiddleware, updatePost);  // Actualizar una publicación
+router.delete("/:id", authMiddleware, deletePost);  // Eliminar una publicación
 
 module.exports = router;
 

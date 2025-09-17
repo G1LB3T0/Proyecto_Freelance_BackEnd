@@ -126,19 +126,20 @@ exports.getPostsByCategoryId = async (req, res) => {
 // Crear un post
 exports.createPost = async (req, res) => {
     try {
-        const { user_id, title, content, image_url, category_id } = req.body;
+        const { title, content, image_url, category_id } = req.body;
 
         // Validar campos requeridos
-        if (!user_id || !title || !content) {
+        if (!title || !content) {
             return res.status(400).json({
                 success: false,
-                error: 'Faltan campos requeridos: user_id, title, content'
+                error: 'Faltan campos requeridos: title, content'
             });
         }
 
+        // Usar el user_id del usuario autenticado automáticamente
         const post = await prisma.posts.create({
             data: {
-                user_id: Number(user_id),
+                user_id: req.user.id, // ID del usuario autenticado
                 title,
                 content,
                 image_url,
@@ -170,183 +171,3 @@ exports.updatePost = async (req, res) => {
 };
 
 // Crear una nueva publicación
-exports.createPost = async (req, res) => {
-    try {
-        const { user_id } = req.query; // Temporal, luego será req.user.id
-        const { title, content, image_url, category_id } = req.body;
-
-        // Validaciones básicas
-        if (!title || !content) {
-            return res.status(400).json({
-                success: false,
-                error: 'Título y contenido son requeridos'
-            });
-        }
-
-        // Obtener información del usuario para author_name y author_avatar
-        const user = await prisma.login_credentials.findUnique({
-            where: { id: parseInt(user_id) },
-            include: {
-                user_profiles: true
-            }
-        });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                error: 'Usuario no encontrado'
-            });
-        }
-
-        // Crear la publicación
-        const newPost = await prisma.posts.create({
-            data: {
-                user_id: parseInt(user_id),
-                author_name: user.user_profiles?.full_name || user.name || user.email,
-                author_avatar: user.user_profiles?.profile_picture || null,
-                title: title.trim(),
-                content: content.trim(),
-                image_url: image_url || null,
-                category_id: category_id ? parseInt(category_id) : null,
-                likes_count: 0,
-                comments_count: 0
-            },
-            include: {
-                categories: {
-                    select: {
-                        id: true,
-                        name: true
-                    }
-                }
-            }
-        });
-
-        res.status(201).json({
-            success: true,
-            message: 'Publicación creada exitosamente',
-            data: newPost
-        });
-
-    } catch (error) {
-        console.error('Error al crear publicación:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error interno del servidor',
-            details: error.message
-        });
-    }
-};
-
-// Eliminar un post
-exports.deletePost = async (req, res) => {
-    const { id } = req.params;
-    try {
-        await prisma.posts.delete({ where: { id: Number(id) } });
-        res.json({ success: true, message: 'Post eliminado' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, error: 'Error al eliminar post' });
-    }
-};
-
-// Crear nueva publicación
-exports.createPost = async (req, res) => {
-    try {
-        const { title, content, category_id, user_id } = req.body;
-
-        // Validaciones básicas
-        if (!title || !content || !category_id || !user_id) {
-            return res.status(400).json({
-                success: false,
-                error: 'Faltan campos obligatorios: title, content, category_id, user_id'
-            });
-        }
-
-        // Crear el post
-        const newPost = await prisma.posts.create({
-            data: {
-                title: title.trim(),
-                content: content.trim(),
-                category_id: parseInt(category_id),
-                user_id: parseInt(user_id),
-                likes_count: 0,
-                comments_count: 0
-            },
-            include: {
-                categories: {
-                    select: {
-                        id: true,
-                        name: true
-                    }
-                }
-            }
-        });
-
-        res.status(201).json({
-            success: true,
-            data: newPost,
-            message: 'Publicación creada exitosamente'
-        });
-    } catch (error) {
-        console.error('Error al crear publicación:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error interno del servidor',
-            details: error.message
-        });
-    }
-};
-
-// Actualizar publicación
-exports.updatePost = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { title, content, category_id } = req.body;
-
-        // Verificar que el post existe
-        const existingPost = await prisma.posts.findUnique({
-            where: { id: parseInt(id) }
-        });
-
-        if (!existingPost) {
-            return res.status(404).json({
-                success: false,
-                error: 'Publicación no encontrada'
-            });
-        }
-
-        // Preparar datos para actualizar
-        const updateData = {};
-        if (title) updateData.title = title.trim();
-        if (content) updateData.content = content.trim();
-        if (category_id) updateData.category_id = parseInt(category_id);
-        updateData.updated_at = new Date();
-
-        // Actualizar el post
-        const updatedPost = await prisma.posts.update({
-            where: { id: parseInt(id) },
-            data: updateData,
-            include: {
-                categories: {
-                    select: {
-                        id: true,
-                        name: true
-                    }
-                }
-            }
-        });
-
-        res.json({
-            success: true,
-            data: updatedPost,
-            message: 'Publicación actualizada exitosamente'
-        });
-    } catch (error) {
-        console.error('Error al actualizar publicación:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error interno del servidor',
-            details: error.message
-        });
-    }
-};
