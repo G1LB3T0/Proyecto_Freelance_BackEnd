@@ -16,7 +16,7 @@ const createPost = async (req, res) => {
         }
 
         // Obtener información del usuario para author_name y author_avatar
-        const user = await prisma.login_credentials.findUnique({
+        const user = await prisma.login.findUnique({
             where: { id: parseInt(user_id) },
             include: {
                 user_profiles: true
