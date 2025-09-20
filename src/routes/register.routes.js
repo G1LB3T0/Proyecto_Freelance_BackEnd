@@ -1,8 +1,7 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../database/db');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Ruta para registrar un nuevo usuario
 router.post('/', async (req, res) => {
@@ -18,7 +17,7 @@ router.post('/', async (req, res) => {
             gender,
             country,
             postal_code,
-            user_type = 'freelancer' // Valor por defecto
+            user_type = 'freelancer'
         } = req.body;
 
         // Validaciones
@@ -47,8 +46,8 @@ router.post('/', async (req, res) => {
         }
 
         // 1. Verificar si el email o username ya existen
-        const existingLogin = await prisma.login.findUnique({ where: { email } });
-        const existingUser = await prisma.login.findUnique({ where: { username } });
+        const existingLogin = await prisma.Login.findUnique({ where: { email } });
+        const existingUser = await prisma.Login.findUnique({ where: { username } });
 
         if (existingLogin) {
             return res.status(409).json({
@@ -66,7 +65,7 @@ router.post('/', async (req, res) => {
 
         // Verificar teléfono solo si se proporciona
         if (phone) {
-            const existingPhone = await prisma.user_details.findUnique({ where: { phone } });
+            const existingPhone = await prisma.user_details.findUnique({ where: { phone_e164: phone } });
             if (existingPhone) {
                 return res.status(409).json({
                     success: false,
@@ -76,7 +75,7 @@ router.post('/', async (req, res) => {
         }
 
         // 2. Crear credenciales de login
-        const login = await prisma.login.create({
+        const login = await prisma.Login.create({
             data: {
                 email,
                 password,
@@ -91,7 +90,7 @@ router.post('/', async (req, res) => {
                 user_id: login.id,
                 first_name,
                 last_name,
-                phone,
+                phone_e164: phone,
                 date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
                 gender,
                 country,
