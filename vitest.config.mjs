@@ -1,8 +1,7 @@
-// Converted to CommonJS so it works with current package.json (no "type":"module").
-// Avoids ERR_REQUIRE_ESM when Vitest (CJS loader) tries to require this file.
-const { defineConfig } = require('vitest/config')
+import { defineConfig } from 'vitest/config'
 
-module.exports = defineConfig({
+// Migrated to ESM (.mjs) to avoid ERR_REQUIRE_ESM when Vitest loads Vite (which is ESM only).
+export default defineConfig({
   test: {
     globals: true,
     environment: 'node',

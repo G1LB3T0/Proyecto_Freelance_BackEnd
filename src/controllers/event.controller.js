@@ -164,7 +164,7 @@ const getEventByIdDetailed = async (req, res) => {
               select: {
                 first_name: true,
                 last_name: true,
-                phone: true
+                    // phone eliminado: el modelo solo expone phone_e164; si se requiere, cambiar a phone_e164
               }
             }
           }
