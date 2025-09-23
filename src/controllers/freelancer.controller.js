@@ -1,12 +1,14 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Obtener todos los freelancers con sus skills
+// Obtener todos los usuarios (freelancers y project managers)
 exports.getAllFreelancers = async (req, res) => {
     try {
-        const freelancers = await prisma.login.findMany({
+        const users = await prisma.login.findMany({
             where: {
-                user_type: 'freelancer'
+                user_type: {
+                    in: ['freelancer', 'project_manager']
+                }
             },
             include: {
                 user_details: true,
@@ -17,16 +19,16 @@ exports.getAllFreelancers = async (req, res) => {
                 }
             }
         });
-        
+
         res.json({
             success: true,
-            data: freelancers
+            data: users
         });
     } catch (error) {
         console.error('Error al obtener freelancers:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: 'Error interno del servidor' 
+            error: 'Error interno del servidor'
         });
     }
 };
@@ -58,16 +60,16 @@ exports.getFreelancersBySkill = async (req, res) => {
                 }
             }
         });
-        
+
         res.json({
             success: true,
             data: freelancers
         });
     } catch (error) {
         console.error('Error al filtrar freelancers por skill:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: 'Error interno del servidor' 
+            error: 'Error interno del servidor'
         });
     }
 };
@@ -102,16 +104,16 @@ exports.getFreelancersBySkillAndLevel = async (req, res) => {
                 }
             }
         });
-        
+
         res.json({
             success: true,
             data: freelancers
         });
     } catch (error) {
         console.error('Error al filtrar freelancers por skill y nivel:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: 'Error interno del servidor' 
+            error: 'Error interno del servidor'
         });
     }
 };
@@ -139,16 +141,16 @@ exports.getFreelancersByCountry = async (req, res) => {
                 }
             }
         });
-        
+
         res.json({
             success: true,
             data: freelancers
         });
     } catch (error) {
         console.error('Error al filtrar freelancers por país:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: 'Error interno del servidor' 
+            error: 'Error interno del servidor'
         });
     }
 }; 
