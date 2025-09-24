@@ -12,7 +12,6 @@ router.post('/', async (req, res) => {
             first_name,
             last_name,
             username,
-            phone,
             date_of_birth,
             gender,
             country,
@@ -46,8 +45,8 @@ router.post('/', async (req, res) => {
         }
 
         // 1. Verificar si el email o username ya existen
-        const existingLogin = await prisma.Login.findUnique({ where: { email } });
-        const existingUser = await prisma.Login.findUnique({ where: { username } });
+    const existingLogin = await prisma.login.findUnique({ where: { email } });
+    const existingUser = await prisma.login.findUnique({ where: { username } });
 
         if (existingLogin) {
             return res.status(409).json({
@@ -63,19 +62,11 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // Verificar teléfono solo si se proporciona
-        if (phone) {
-            const existingPhone = await prisma.user_details.findUnique({ where: { phone_e164: phone } });
-            if (existingPhone) {
-                return res.status(409).json({
-                    success: false,
-                    error: 'El teléfono ya está en uso'
-                });
-            }
-        }
+        // Nota: Se omite manejo de teléfono; si se requiere en el futuro,
+        // agregar validación y asignación a phone_e164.
 
         // 2. Crear credenciales de login
-        const login = await prisma.Login.create({
+        const login = await prisma.login.create({
             data: {
                 email,
                 password,
@@ -90,7 +81,6 @@ router.post('/', async (req, res) => {
                 user_id: login.id,
                 first_name,
                 last_name,
-                phone_e164: phone,
                 date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
                 gender,
                 country,

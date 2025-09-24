@@ -10,7 +10,6 @@ exports.getUserSettings = async (req, res) => {
             select: {
                 first_name: true,
                 last_name: true,
-                phone: true,
                 phone_e164: true,
                 bio: true,
                 profile_picture: true,
@@ -33,10 +32,25 @@ exports.getUserSettings = async (req, res) => {
             }
         });
 
+        // Si no hay detalles aún, devolver campos nulos para consistencia
+        const safeDetails = userDetails || {
+            first_name: null,
+            last_name: null,
+            phone_e164: null,
+            bio: null,
+            profile_picture: null,
+            website_url: null,
+            location: null,
+            date_of_birth: null,
+            gender: null,
+            country: null,
+            postal_code: null
+        };
+
         res.json({
             success: true,
             data: {
-                ...userDetails,
+                ...safeDetails,
                 social_links: socialLinks
             }
         });
@@ -56,7 +70,6 @@ exports.updateUserSettings = async (req, res) => {
         const {
             first_name,
             last_name,
-            phone,
             phone_e164,
             bio,
             website_url,
@@ -107,7 +120,6 @@ exports.updateUserSettings = async (req, res) => {
         const updateData = {};
         if (first_name !== undefined) updateData.first_name = sanitizeName(first_name);
         if (last_name !== undefined) updateData.last_name = sanitizeName(last_name);
-        if (phone !== undefined) updateData.phone = phone;
         if (phone_e164 !== undefined) updateData.phone_e164 = phone_e164;
         if (bio !== undefined) updateData.bio = sanitizeBio(bio);
         if (website_url !== undefined) updateData.website_url = normalizeURL(website_url);
