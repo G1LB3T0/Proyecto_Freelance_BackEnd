@@ -1,9 +1,6 @@
 const { Router } = require('express');
 const router = Router();
-const {
-    authMiddleware,
-    anyAuthenticated
-} = require('../middleware/auth');
+const { authMiddleware, anyAuthenticated } = require('../middleware/auth');
 
 const {
     createReview,

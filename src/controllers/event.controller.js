@@ -14,12 +14,12 @@ const getAllEvents = async (req, res) => {
 // POST /api/events
 const createEvent = async (req, res) => {
   try {
-    const { title, day, month, year, user_id } = req.body;
+    const { title, day, month, year } = req.body;
 
     // Validaciones básicas
-    if (!title || !day || !month || !year || !user_id) {
+    if (!title || !day || !month || !year) {
       return res.status(400).json({
-        error: 'Faltan campos obligatorios: title, day, month, year, user_id'
+        error: 'Faltan campos obligatorios: title, day, month, year'
       });
     }
 
@@ -37,7 +37,7 @@ const createEvent = async (req, res) => {
         day: parseInt(day),
         month: parseInt(month),
         year: parseInt(year),
-        user_id: parseInt(user_id)
+        user_id: req.user.id
       }
     });
 

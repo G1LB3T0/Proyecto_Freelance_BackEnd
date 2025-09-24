@@ -76,6 +76,9 @@ const freelancerOnly = roleMiddleware(['freelancer']);
 // Middleware específico para clientes/project managers  
 const clientOnly = roleMiddleware(['client', 'project_manager']);
 
+// Middleware específico para administradores
+const adminOnly = roleMiddleware(['admin']);
+
 // Middleware para cualquier usuario autenticado
 const anyAuthenticated = roleMiddleware(['freelancer', 'client', 'project_manager', 'admin']);
 
@@ -164,15 +167,80 @@ const validateParamOwnership = (paramName = 'id') => validateOwnership({
     allowedRoles: ['freelancer', 'client', 'project_manager', 'admin']
 });
 
+// === Ownership por recurso (consultando BD) ===
+// Posts: solo propietario (user_id) o admin pueden modificar/eliminar
+const ensurePostOwnerOrAdmin = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+        }
+
+        // Los admins siempre pueden
+        if (req.user.user_type === 'admin') return next();
+
+        const postId = Number(req.params.id);
+        if (!postId) return res.status(400).json({ success: false, message: 'ID de post inválido' });
+
+        const post = await prisma.posts.findUnique({
+            where: { id: postId },
+            select: { user_id: true }
+        });
+
+        if (!post) return res.status(404).json({ success: false, message: 'Post no encontrado' });
+
+        if (post.user_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'No tienes permisos para modificar este post' });
+        }
+
+        next();
+    } catch (error) {
+        console.error('Error en ensurePostOwnerOrAdmin:', error);
+        res.status(500).json({ success: false, message: 'Error de validación de ownership' });
+    }
+};
+
+// Events: solo propietario (user_id) o admin pueden modificar/eliminar
+const ensureEventOwnerOrAdmin = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+        }
+
+        if (req.user.user_type === 'admin') return next();
+
+        const eventId = Number(req.params.id);
+        if (!eventId) return res.status(400).json({ success: false, message: 'ID de evento inválido' });
+
+        const event = await prisma.event.findUnique({
+            where: { id: eventId },
+            select: { user_id: true }
+        });
+
+        if (!event) return res.status(404).json({ success: false, message: 'Evento no encontrado' });
+
+        if (event.user_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'No tienes permisos para modificar este evento' });
+        }
+
+        next();
+    } catch (error) {
+        console.error('Error en ensureEventOwnerOrAdmin:', error);
+        res.status(500).json({ success: false, message: 'Error de validación de ownership' });
+    }
+};
+
 module.exports = {
     authMiddleware,
     roleMiddleware,
     freelancerOnly,
     clientOnly,
+    adminOnly,
     anyAuthenticated,
     validateOwnership,
     validateClientOwnership,
     validateFreelancerOwnership,
     validateUserOwnership,
-    validateParamOwnership
+    validateParamOwnership,
+    ensurePostOwnerOrAdmin,
+    ensureEventOwnerOrAdmin
 };
