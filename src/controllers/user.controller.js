@@ -3,9 +3,11 @@ const prisma = require('../database/db');
 // Obtener estadísticas del usuario autenticado
 const getUserStats = async (req, res) => {
     try {
-        // TEMPORAL para testing - usar user_id hardcodeado o desde query params
-        const userId = parseInt(req.query.user_id) || 1; // Por defecto user_id = 1 para testing
-        // TODO: Cambiar por req.user.id cuando se implemente autenticación
+        // Usar el ID del usuario autenticado (inyectado por authMiddleware)
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+        }
 
         // Obtener estadísticas usando Prisma
         const [

@@ -137,6 +137,10 @@ exports.createPost = async (req, res) => {
         }
 
         // Usar el user_id del usuario autenticado automáticamente
+        if (!req.user?.id) {
+            return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+        }
+
         const post = await prisma.posts.create({
             data: {
                 user_id: req.user.id, // ID del usuario autenticado
@@ -157,6 +161,9 @@ exports.createPost = async (req, res) => {
 exports.updatePost = async (req, res) => {
     const { id } = req.params;
     try {
+        // Validación adicional: solo propietario o admin (ya validado por middleware, esto es redundante defensivo)
+        if (!req.user) return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+
         const data = { ...req.body };
         if (data.category_id) data.category_id = Number(data.category_id);
         const post = await prisma.posts.update({
@@ -174,6 +181,8 @@ exports.updatePost = async (req, res) => {
 exports.deletePost = async (req, res) => {
     const { id } = req.params;
     try {
+        if (!req.user) return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+
         await prisma.posts.delete({
             where: { id: Number(id) }
         });
