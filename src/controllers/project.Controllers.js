@@ -110,24 +110,69 @@ exports.createProject = async (req, res) => {
     try {
         const { title, description, budget, deadline, category_id, skills_required, priority } = req.body;
 
-        // Validar campos requeridos (client_id se toma automáticamente del usuario autenticado)
-        if (!title || !description || !budget) {
+        // Validar autenticación
+        if (!req.user?.id) {
+            return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+        }
+
+        // Validaciones de campos requeridos
+        if (!title || !description || budget === undefined || budget === null) {
             return res.status(400).json({
                 success: false,
                 error: 'Faltan campos requeridos: title, description, budget'
             });
         }
 
+        // Normalizaciones
+        const parsedBudget = Number.parseFloat(budget);
+        if (Number.isNaN(parsedBudget) || parsedBudget <= 0) {
+            return res.status(400).json({ success: false, error: 'El presupuesto (budget) debe ser un número positivo' });
+        }
+
+        let parsedDeadline = null;
+        if (deadline) {
+            const d = new Date(deadline);
+            if (isNaN(d.getTime())) {
+                return res.status(400).json({ success: false, error: 'Fecha inválida en deadline (usar formato ISO: YYYY-MM-DD)' });
+            }
+            parsedDeadline = d;
+        }
+
+        let parsedCategoryId = null;
+        if (category_id !== undefined && category_id !== null && category_id !== '') {
+            parsedCategoryId = Number(category_id);
+            if (Number.isNaN(parsedCategoryId) || parsedCategoryId <= 0) {
+                return res.status(400).json({ success: false, error: 'category_id debe ser un entero positivo' });
+            }
+            // Verificar existencia de la categoría
+            const categoryExists = await prisma.categories.findUnique({ where: { id: parsedCategoryId } });
+            if (!categoryExists) {
+                return res.status(400).json({ success: false, error: 'La categoría indicada no existe' });
+            }
+        }
+
+        // skills_required debe ser array de strings; admitir string separado por comas
+        let parsedSkills = [];
+        if (Array.isArray(skills_required)) {
+            parsedSkills = skills_required.filter(Boolean).map(s => String(s).trim()).filter(Boolean);
+        } else if (typeof skills_required === 'string') {
+            parsedSkills = skills_required.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        const safePriority = ['low', 'medium', 'high'].includes(String(priority).toLowerCase())
+            ? String(priority).toLowerCase()
+            : 'medium';
+
         const project = await prisma.project.create({
             data: {
-                client_id: req.user.id, // ✅ Usar automáticamente el usuario autenticado
-                title,
-                description,
-                budget: parseFloat(budget),
-                deadline: deadline ? new Date(deadline) : null,
-                category_id: category_id ? Number(category_id) : null,
-                skills_required: skills_required || [],
-                priority: priority || 'medium'
+                client_id: req.user.id,
+                title: String(title).trim(),
+                description: String(description).trim(),
+                budget: parsedBudget,
+                deadline: parsedDeadline,
+                category_id: parsedCategoryId,
+                skills_required: parsedSkills,
+                priority: safePriority
             },
             include: {
                 client: { select: { id: true, username: true, email: true } },
@@ -137,8 +182,15 @@ exports.createProject = async (req, res) => {
 
         res.status(201).json({ success: true, data: project });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, error: 'Error al crear proyecto' });
+        console.error('Error al crear proyecto:', error);
+        // Mejorar feedback del error para depuración
+        res.status(500).json({
+            success: false,
+            error: 'Error al crear proyecto',
+            code: error.code,
+            meta: error.meta,
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 
