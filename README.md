@@ -74,7 +74,28 @@ API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub
    ```
 2. La API estará disponible en `http://localhost:3000`
 
-## 📄 Endpoints
+## � Pruebas de carga (k6)
+
+Ejecuta las pruebas de carga con k6 usando el archivo de compose del backend y el de k6 combinados:
+
+```bash
+docker-compose -f Docker-compose.yml -f docker-compose.k6.yml --env-file .env up --abort-on-container-exit --remove-orphans
+```
+
+Windows PowerShell (con rutas absolutas, si lo prefieres):
+
+```powershell
+docker-compose -f "c:\\Users\\luisy\\Desktop\\WEB\\Proyecto_ING\\Proyecto_Freelance_BackEnd\\Docker-compose.yml" -f "c:\\Users\\luisy\\Desktop\\WEB\\Proyecto_ING\\Proyecto_Freelance_BackEnd\\docker-compose.k6.yml" --env-file "c:\\Users\\luisy\\Desktop\\WEB\\Proyecto_ING\\Proyecto_Freelance_BackEnd\\.env" up --abort-on-container-exit --remove-orphans
+```
+
+Variables útiles (opcionales):
+- EMAIL, PASSWORD: credenciales para login en el setup (por defecto usa usuario seed).
+- JWT: para saltar el login y usar un token directamente.
+- READY_TIMEOUT_MS, READY_RETRY_MS: controlan reintentos de setup.
+
+Más detalles en `perf/README.md`.
+
+## �📄 Endpoints
 
 ### Usuarios & Autenticación
 

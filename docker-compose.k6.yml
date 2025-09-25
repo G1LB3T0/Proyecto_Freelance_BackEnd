@@ -1,0 +1,17 @@
+services:
+  k6:
+    image: grafana/k6:latest
+    container_name: k6-load
+    working_dir: /scripts
+    environment:
+      - API_BASE=http://backend:3000
+      - EMAIL=${EMAIL:-pablo456@gmail.com}
+      - PASSWORD=${PASSWORD:-hola456}
+      # Puedes pasar JWT en vez de email/password (opcional)
+      - JWT=${JWT}
+    volumes:
+      - ./perf/k6:/scripts:ro
+    command: ["run", "/scripts/projects-load.js"]
+    depends_on:
+      backend:
+        condition: service_healthy

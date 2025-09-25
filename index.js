@@ -39,7 +39,10 @@ app.use((req, res, next) => {
     ].filter(Boolean);
 
     const origin = req.headers.origin;
-    console.log('🔍 Origin recibido:', origin);
+    // Reducir ruido en logs cuando no hay Origin (p.ej. k6, curl)
+    if (origin) {
+        console.log('🔍 Origin recibido:', origin);
+    }
 
     if (allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
