@@ -9,24 +9,25 @@ datasource db {
 }
 
 model Login {
-  id                                               Int                 @id @default(autoincrement())
-  username                                         String              @unique @db.VarChar(50)
-  email                                            String              @unique @db.VarChar(100)
-  password                                         String              @db.VarChar(255)
-  user_type                                        String              @db.VarChar(20)
-  name                                             String?             @db.VarChar(100)
-  createdAt                                        DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
+  id                                               Int                    @id @default(autoincrement())
+  username                                         String                 @unique @db.VarChar(50)
+  email                                            String                 @unique @db.VarChar(100)
+  password                                         String                 @db.VarChar(255)
+  user_type                                        String                 @db.VarChar(20)
+  name                                             String?                @db.VarChar(100)
+  createdAt                                        DateTime?              @default(now()) @map("created_at") @db.Timestamp(6)
   event                                            event[]
   freelancer_skills                                freelancer_skills[]
   posts                                            posts[]
-  project_project_client_idTologin_credentials     project[]           @relation("project_client_idTologin_credentials")
-  project_project_freelancer_idTologin_credentials project[]           @relation("project_freelancer_idTologin_credentials")
+  project_project_client_idTologin_credentials     project[]              @relation("project_client_idTologin_credentials")
+  project_project_freelancer_idTologin_credentials project[]              @relation("project_freelancer_idTologin_credentials")
   project_proposals                                project_proposals[]
-  reviews_reviews_reviewed_idTologin_credentials   reviews[]           @relation("reviews_reviewed_idTologin_credentials")
-  reviews_reviews_reviewer_idTologin_credentials   reviews[]           @relation("reviews_reviewer_idTologin_credentials")
+  reviews_reviews_reviewed_idTologin_credentials   reviews[]              @relation("reviews_reviewed_idTologin_credentials")
+  reviews_reviews_reviewer_idTologin_credentials   reviews[]              @relation("reviews_reviewer_idTologin_credentials")
   user_details                                     user_details?
   user_profiles                                    user_profiles?
   notifications                                    notifications[]
+  finance_transactions                             finance_transactions[]
 
   @@map("login_credentials")
 }
@@ -214,4 +215,42 @@ model notifications {
   related_type      String?  @db.VarChar(50)
   created_at        DateTime @default(now())
   login_credentials Login    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+// ===== Finance module =====
+enum TipoTransaccion {
+  ingreso
+  gasto
+}
+
+enum EstadoTransaccion {
+  pendiente
+  pagado
+  completado
+  vencido
+}
+
+model finance_categories {
+  id                   Int                    @id @default(autoincrement())
+  name                 String                 @unique @db.VarChar(100)
+  finance_transactions finance_transactions[]
+}
+
+model finance_transactions {
+  id          Int               @id @default(autoincrement())
+  user_id     Int
+  tipo        TipoTransaccion
+  concepto    String            @db.VarChar(255)
+  monto       Decimal           @db.Decimal(12, 2)
+  fecha       DateTime          @db.Date
+  estado      EstadoTransaccion
+  category_id Int?
+  created_at  DateTime?         @default(now()) @db.Timestamp(6)
+
+  // Relations
+  login_credentials  Login               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  finance_categories finance_categories? @relation(fields: [category_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([user_id, fecha(sort: Desc)], map: "idx_finance_tx_user_fecha")
+  @@index([tipo], map: "idx_finance_tx_tipo")
 }
