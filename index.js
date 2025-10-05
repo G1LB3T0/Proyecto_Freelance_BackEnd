@@ -32,12 +32,23 @@ app.use(express.urlencoded({ extended: true }));
 // Manejo de CORS
 app.use((req, res, next) => {
     const allowedOrigins = [
-        'http://localhost:5173', // Vite dev server (default)
-        'http://localhost:3001', // Tu frontend actual
-        'http://localhost:3000', // Backend mismo
-        'http://localhost:4173', // Vite preview
-        process.env.CORS_ORIGIN
-    ].filter(Boolean);
+        // Desarrollo local
+        'http://localhost:5173',     // Vite dev server (default)
+        'http://localhost:3001',     // Frontend en puerto 3001
+        'http://localhost:3000',     // Backend mismo
+        'http://localhost:4173',     // Vite preview
+        
+        // Producción - Servidor 3.15.45.170
+        'http://3.15.45.170',        // Frontend en puerto 80 (HTTP)
+        'http://3.15.45.170:3001',   // Frontend en puerto 3001
+        'http://3.15.45.170:80',     // Frontend en puerto 80 explícito
+        'https://3.15.45.170',       // Frontend HTTPS
+        'https://3.15.45.170:443',   // Frontend HTTPS explícito
+        
+        // Variable de entorno personalizada
+        process.env.CORS_ORIGIN,
+        process.env.FRONTEND_URL
+    ].filter(Boolean); // Filtrar valores null/undefined
 
     const origin = req.headers.origin;
     console.log('🔍 Origin recibido:', origin);
@@ -47,20 +58,26 @@ app.use((req, res, next) => {
         console.log('✅ CORS permitido para:', origin);
     } else {
         // Para desarrollo, permitir cualquier localhost
-        if (origin && origin.includes('localhost')) {
+        if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
             res.header('Access-Control-Allow-Origin', origin);
             console.log('🔧 CORS permitido (localhost):', origin);
+        } else if (origin) {
+            // Log para debugging en producción
+            console.log('⚠️  Origin no permitido:', origin);
+            console.log('📋 Origins permitidos:', allowedOrigins);
         }
     }
 
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Credentials', 'true');
 
+    // Manejar preflight requests (OPTIONS)
     if (req.method === 'OPTIONS') {
-        res.header('Access-Control-Allow-Methods', 'PUT, POST, PATCH, DELETE, GET');
         console.log('🔀 Preflight request para:', origin);
         return res.status(200).json({});
     }
+    
     next();
 });
 
