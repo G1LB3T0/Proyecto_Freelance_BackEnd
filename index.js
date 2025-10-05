@@ -29,7 +29,9 @@ const pool = new Pool({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Manejo de CORS
+// ============================================
+// MANEJO DE CORS - MODO AGRESIVO
+// ============================================
 app.use((req, res, next) => {
     const allowedOrigins = [
         // Desarrollo local
@@ -51,33 +53,52 @@ app.use((req, res, next) => {
     ].filter(Boolean); // Filtrar valores null/undefined
 
     const origin = req.headers.origin;
-    console.log('🔍 Origin recibido:', origin);
+    
+    // Log SIEMPRE para debugging
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔍 CORS REQUEST');
+    console.log('Method:', req.method);
+    console.log('Origin:', origin || 'No origin header');
+    console.log('Path:', req.path);
+    console.log('Headers:', req.headers);
 
-    if (allowedOrigins.includes(origin)) {
+    // SIEMPRE establecer los headers CORS (modo permisivo para debugging)
+    if (origin && allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
-        console.log('✅ CORS permitido para:', origin);
+        console.log('✅ CORS permitido (lista blanca):', origin);
+    } else if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+        res.header('Access-Control-Allow-Origin', origin);
+        console.log('✅ CORS permitido (localhost):', origin);
+    } else if (origin && origin.includes('3.15.45.170')) {
+        // Modo permisivo para la IP del servidor
+        res.header('Access-Control-Allow-Origin', origin);
+        console.log('✅ CORS permitido (IP servidor):', origin);
+    } else if (origin) {
+        // Fallback: permitir el origin de todas formas para debugging
+        res.header('Access-Control-Allow-Origin', origin);
+        console.log('⚠️  CORS permitido (fallback - TEMPORAL):', origin);
+        console.log('📋 Origins en lista blanca:', allowedOrigins);
     } else {
-        // Para desarrollo, permitir cualquier localhost
-        if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-            res.header('Access-Control-Allow-Origin', origin);
-            console.log('🔧 CORS permitido (localhost):', origin);
-        } else if (origin) {
-            // Log para debugging en producción
-            console.log('⚠️  Origin no permitido:', origin);
-            console.log('📋 Origins permitidos:', allowedOrigins);
-        }
+        // Sin origin header - permitir de todas formas
+        res.header('Access-Control-Allow-Origin', '*');
+        console.log('⚠️  Sin Origin header - usando *');
     }
 
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    // Headers adicionales - SIEMPRE
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
     res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400'); // 24 horas
 
     // Manejar preflight requests (OPTIONS)
     if (req.method === 'OPTIONS') {
-        console.log('🔀 Preflight request para:', origin);
-        return res.status(200).json({});
+        console.log('🔀 PREFLIGHT REQUEST - Respondiendo OK');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        return res.status(200).end();
     }
     
+    console.log('➡️  Continuando a la ruta...');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     next();
 });
 
@@ -125,9 +146,24 @@ if (process.env.NODE_ENV !== 'test' && require.main === module) {
             // Ejecutar seeding de la base de datos
             await seedDatabase(pool);
 
-            // Iniciar el servidor
-            app.listen(port, () => {
-                console.log(`🚀 Servidor corriendo en el puerto ${port}`);
+            // Iniciar el servidor en TODAS las interfaces de red (0.0.0.0)
+            // Esto permite que el servidor acepte conexiones desde cualquier IP
+            const host = process.env.HOST || '0.0.0.0';
+            
+            app.listen(port, host, () => {
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('🚀 SERVIDOR CORRIENDO');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log(`📡 Puerto: ${port}`);
+                console.log(`🌐 Host: ${host}`);
+                console.log(`🔗 Accesible en:`);
+                console.log(`   - http://localhost:${port}`);
+                console.log(`   - http://127.0.0.1:${port}`);
+                console.log(`   - http://3.15.45.170:${port} (IP del servidor)`);
+                console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
+                console.log(`📊 Base de datos: ${process.env.DATABASE_URL ? 'Configurada ✅' : 'No configurada ❌'}`);
+                console.log(`🔐 CORS: Configurado para 3.15.45.170 ✅`);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             });
         } catch (error) {
             console.error('❌ Error al inicializar la aplicación:', error);
