@@ -183,4 +183,29 @@ router.post('/refresh', authMiddleware, async (req, res) => {
     }
 });
 
+// Ruta para cerrar sesión
+router.post('/logout', authMiddleware, (req, res) => {
+    try {
+        // No se revoca el token en backend; el cliente debe eliminarlo del almacenamiento.
+        res.status(200).json({
+            success: true,
+            message: 'Sesión cerrada. Elimina el token almacenado en el cliente.',
+            data: {
+                user: {
+                    id: req.user.id,
+                    username: req.user.username,
+                    email: req.user.email,
+                    user_type: req.user.user_type
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
+    }
+});
+
 module.exports = router;
