@@ -5,7 +5,18 @@ const prisma = require('../database/db');
 // Crear review para proyecto
 exports.createReview = async (req, res) => {
     try {
-        const { project_id, reviewer_id, reviewed_id, rating, comment } = req.body;
+        if (!req.user?.id) {
+            return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+        }
+
+        const { project_id, reviewed_id, rating, comment } = req.body;
+
+        if (!project_id || !reviewed_id || !rating) {
+            return res.status(400).json({
+                success: false,
+                error: 'Faltan campos requeridos: project_id, reviewed_id, rating'
+            });
+        }
 
         // Verificar si ya existe una review para este proyecto
         const existingReview = await prisma.reviews.findUnique({
@@ -22,7 +33,7 @@ exports.createReview = async (req, res) => {
         const review = await prisma.reviews.create({
             data: {
                 project_id: Number(project_id),
-                reviewer_id: Number(reviewer_id),
+                reviewer_id: req.user.id,
                 reviewed_id: Number(reviewed_id),
                 rating: Number(rating),
                 comment

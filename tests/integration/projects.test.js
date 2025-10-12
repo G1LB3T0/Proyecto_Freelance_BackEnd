@@ -1,16 +1,25 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { app } from '../../index.js'
-import { getAuthToken, createAuthHeaders, authenticateRequest, getAllAuthTokens } from '../helpers/auth.js'
+import { authenticateRequest, createAuthHeaders, getAllAuthTokens, TEST_USERS } from '../helpers/auth.js'
 
 describe('Projects API', () => {
   let testProjectId
   let testProposalId
   let tokens = {}
 
+  const clientType = 'project_manager'
+  const clientAltType = 'project_manager_alt'
+  const freelancerType = 'freelancer'
+  const freelancerAltType = 'freelancer_alt'
+
   beforeAll(async () => {
     // Obtener tokens para diferentes tipos de usuarios
     tokens = await getAllAuthTokens()
+
+    if (!tokens[clientType] || !tokens[freelancerType] || !tokens[freelancerAltType]) {
+      throw new Error('No se pudieron obtener los tokens necesarios para las pruebas de proyectos')
+    }
   })
 
   describe('GET /projects', () => {
@@ -26,7 +35,7 @@ describe('Projects API', () => {
     it('debería obtener todos los proyectos con autenticación', async () => {
       const response = await request(app)
         .get('/projects')
-        .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
+        .set(createAuthHeaders(tokens[clientType]))
         .expect(200)
 
       expect(response.body).toHaveProperty('success')
@@ -50,14 +59,14 @@ describe('Projects API', () => {
       // Primero obtener todos los proyectos para tener un ID válido
       const projectsResponse = await request(app)
         .get('/projects')
-        .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
+        .set(createAuthHeaders(tokens[clientType]))
 
       const firstProject = projectsResponse.body.data[0]
 
       if (firstProject) {
         const response = await request(app)
           .get(`/projects/${firstProject.id}`)
-          .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
+          .set(createAuthHeaders(tokens[clientType]))
           .expect(200)
 
         expect(response.body).toHaveProperty('success')
@@ -75,7 +84,7 @@ describe('Projects API', () => {
     it('debería devolver 404 para un proyecto inexistente', async () => {
       const response = await request(app)
         .get('/projects/99999')
-        .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
+        .set(createAuthHeaders(tokens[clientType]))
         .expect(404)
 
       expect(response.body).toHaveProperty('success')
@@ -86,7 +95,8 @@ describe('Projects API', () => {
   describe('GET /projects/client/:clientId', () => {
     it('debería obtener proyectos de un cliente específico', async () => {
       const response = await request(app)
-        .get('/projects/client/1')
+        .get(`/projects/client/${TEST_USERS[clientType].id}`)
+        .set(createAuthHeaders(tokens[clientType]))
         .expect(200)
 
       expect(response.body).toHaveProperty('success')
@@ -99,7 +109,8 @@ describe('Projects API', () => {
   describe('GET /projects/freelancer/:freelancerId', () => {
     it('debería obtener proyectos de un freelancer específico', async () => {
       const response = await request(app)
-        .get('/projects/freelancer/3')
+        .get(`/projects/freelancer/${TEST_USERS[freelancerAltType].id}`)
+        .set(createAuthHeaders(tokens[freelancerAltType]))
         .expect(200)
 
       expect(response.body).toHaveProperty('success')
@@ -113,6 +124,7 @@ describe('Projects API', () => {
     it('debería obtener proyectos por estado "open"', async () => {
       const response = await request(app)
         .get('/projects/status/open')
+        .set(createAuthHeaders(tokens[clientType]))
         .expect(200)
 
       expect(response.body).toHaveProperty('success')
@@ -124,6 +136,7 @@ describe('Projects API', () => {
     it('debería obtener proyectos por estado "completed"', async () => {
       const response = await request(app)
         .get('/projects/status/completed')
+        .set(createAuthHeaders(tokens[clientType]))
         .expect(200)
 
       expect(response.body).toHaveProperty('success')
@@ -136,7 +149,6 @@ describe('Projects API', () => {
   describe('POST /projects', () => {
     it('debería crear un nuevo proyecto', async () => {
       const newProject = {
-        client_id: 2,
         title: 'Proyecto Test desde Vitest',
         description: 'Descripción del proyecto de prueba',
         budget: 2500.00,
@@ -146,8 +158,8 @@ describe('Projects API', () => {
         priority: 'high'
       }
 
-      const response = await request(app)
-        .post('/projects')
+        const { request: projectRequest } = await authenticateRequest(request(app).post('/projects'), clientType)
+        const response = await projectRequest
         .send(newProject)
         .expect(201)
 
@@ -164,12 +176,11 @@ describe('Projects API', () => {
 
     it('debería rechazar crear proyecto sin campos requeridos', async () => {
       const invalidProject = {
-        client_id: 2,
         // Falta title, description y budget
       }
 
-      const response = await request(app)
-        .post('/projects')
+        const { request: invalidRequest } = await authenticateRequest(request(app).post('/projects'), clientType)
+        const response = await invalidRequest
         .send(invalidProject)
         .expect(400)
 
@@ -192,8 +203,8 @@ describe('Projects API', () => {
         status: 'in_progress'
       }
 
-      const response = await request(app)
-        .put(`/projects/${testProjectId}`)
+        const { request: updateRequest } = await authenticateRequest(request(app).put(`/projects/${testProjectId}`), clientType)
+        const response = await updateRequest
         .send(updateData)
         .expect(200)
 
@@ -213,9 +224,8 @@ describe('Projects API', () => {
         return
       }
 
-      const response = await request(app)
-        .delete(`/projects/${testProjectId}`)
-        .expect(200)
+        const { request: deleteRequest } = await authenticateRequest(request(app).delete(`/projects/${testProjectId}`), clientType)
+        const response = await deleteRequest.expect(200)
 
       expect(response.body).toHaveProperty('success')
       expect(response.body.success).toBe(true)
@@ -230,7 +240,6 @@ describe('Projects API', () => {
     beforeAll(async () => {
       // Crear un proyecto para las propuestas
       const newProject = {
-        client_id: 2,
         title: 'Proyecto para Propuestas Test',
         description: 'Proyecto para probar propuestas',
         budget: 1500.00,
@@ -239,9 +248,10 @@ describe('Projects API', () => {
         skills_required: ['Python', 'Django']
       }
 
-      const projectResponse = await request(app)
-        .post('/projects')
+        const { request: projectRequest } = await authenticateRequest(request(app).post('/projects'), clientType)
+        const projectResponse = await projectRequest
         .send(newProject)
+        .expect(201)
 
       proposalProjectId = projectResponse.body.data.id
     })
@@ -250,7 +260,6 @@ describe('Projects API', () => {
       it('debería crear una nueva propuesta', async () => {
         const newProposal = {
           project_id: proposalProjectId,
-          freelancer_id: 3,
           proposed_budget: 1400.00,
           delivery_time: 30,
           proposal_text: 'Propuesta de prueba desde Vitest',
@@ -258,8 +267,8 @@ describe('Projects API', () => {
           portfolio_links: ['https://github.com/test', 'https://portfolio.test.com']
         }
 
-        const response = await request(app)
-          .post('/projects/proposals')
+          const { request: proposalRequest } = await authenticateRequest(request(app).post('/projects/proposals'), freelancerAltType)
+          const response = await proposalRequest
           .send(newProposal)
           .expect(201)
 
@@ -277,6 +286,7 @@ describe('Projects API', () => {
       it('debería obtener propuestas de un proyecto', async () => {
         const response = await request(app)
           .get(`/projects/${proposalProjectId}/proposals`)
+          .set(createAuthHeaders(tokens[clientType]))
           .expect(200)
 
         expect(response.body).toHaveProperty('success')
@@ -289,7 +299,8 @@ describe('Projects API', () => {
     describe('GET /projects/freelancer/:freelancerId/proposals', () => {
       it('debería obtener propuestas de un freelancer', async () => {
         const response = await request(app)
-          .get('/projects/freelancer/3/proposals')
+          .get(`/projects/freelancer/${TEST_USERS[freelancerAltType].id}/proposals`)
+          .set(createAuthHeaders(tokens[freelancerAltType]))
           .expect(200)
 
         expect(response.body).toHaveProperty('success')
@@ -308,6 +319,7 @@ describe('Projects API', () => {
 
         const response = await request(app)
           .patch(`/projects/proposals/${testProposalId}/accept`)
+          .set(createAuthHeaders(tokens[clientType]))
           .expect(200)
 
         expect(response.body).toHaveProperty('success')
@@ -325,6 +337,7 @@ describe('Projects API', () => {
 
         const response = await request(app)
           .patch(`/projects/proposals/${testProposalId}/reject`)
+          .set(createAuthHeaders(tokens[clientType]))
           .expect(200)
 
         expect(response.body).toHaveProperty('success')
@@ -341,7 +354,6 @@ describe('Projects API', () => {
     beforeAll(async () => {
       // Crear un proyecto para las reviews
       const newProject = {
-        client_id: 2,
         title: 'Proyecto para Reviews Test',
         description: 'Proyecto para probar reviews',
         budget: 2000.00,
@@ -350,9 +362,10 @@ describe('Projects API', () => {
         skills_required: ['React', 'Node.js']
       }
 
-      const projectResponse = await request(app)
-        .post('/projects')
+        const { request: projectRequest } = await authenticateRequest(request(app).post('/projects'), clientType)
+        const projectResponse = await projectRequest
         .send(newProject)
+        .expect(201)
 
       reviewProjectId = projectResponse.body.data.id
     })
@@ -361,14 +374,13 @@ describe('Projects API', () => {
       it('debería crear una nueva review', async () => {
         const newReview = {
           project_id: reviewProjectId,
-          reviewer_id: 1,
-          reviewed_id: 5,
+          reviewed_id: TEST_USERS[freelancerAltType].id,
           rating: 5,
           comment: 'Excelente trabajo, muy profesional'
         }
 
-        const response = await request(app)
-          .post('/projects/reviews')
+          const { request: reviewRequest } = await authenticateRequest(request(app).post('/projects/reviews'), clientType)
+          const response = await reviewRequest
           .send(newReview)
           .expect(201)
 
@@ -383,7 +395,7 @@ describe('Projects API', () => {
     describe('GET /projects/user/:userId/reviews', () => {
       it('debería obtener reviews de un usuario', async () => {
         const response = await request(app)
-          .get('/projects/user/5/reviews')
+          .get(`/projects/user/${TEST_USERS[freelancerAltType].id}/reviews`)
           .expect(200)
 
         expect(response.body).toHaveProperty('success')

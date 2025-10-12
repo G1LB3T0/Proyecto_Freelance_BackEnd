@@ -1,12 +1,15 @@
 const { Router } = require('express');
 const router = Router();
+
 const {
     authMiddleware,
     clientOnly,
+    freelancerOnly,
     anyAuthenticated,
-    validateClientOwnership,
     validateParamOwnership
-} = require('../middleware/auth'); const {
+} = require('../middleware/auth');
+
+const {
     getProjects,
     getProjectById,
     getProjectsByClient,
@@ -17,15 +20,38 @@ const {
     deleteProject
 } = require('../controllers/project.Controllers.js');
 
-// === RUTAS DE PROYECTOS ===
-router.get("/", authMiddleware, anyAuthenticated, getProjects);                                    // GET /projects - Todos los proyectos (autenticados)
-router.get("/:id", authMiddleware, anyAuthenticated, getProjectById);                              // GET /projects/1 - Proyecto por ID (autenticados)
-router.get("/client/:clientId", authMiddleware, validateParamOwnership('clientId'), getProjectsByClient);            // GET /projects/client/1 - Proyectos de un cliente (solo propios o admin)
-router.get("/freelancer/:freelancerId", authMiddleware, validateParamOwnership('freelancerId'), getProjectsByFreelancer); // GET /projects/freelancer/1 - Proyectos de un freelancer (solo propios o admin)
-router.get("/status/:status", authMiddleware, anyAuthenticated, getProjectsByStatus);              // GET /projects/status/open - Proyectos por estado
-router.post("/", authMiddleware, clientOnly, createProject);                                 // POST /projects - Crear proyecto (automáticamente usa req.user.id)
-router.put("/:id", authMiddleware, clientOnly, updateProject);                               // PUT /projects/1 - Actualizar proyecto (validar ownership en controlador)
-router.delete("/:id", authMiddleware, clientOnly, deleteProject);                            // DELETE /projects/1 - Eliminar proyecto (validar ownership en controlador)
+const {
+    createProposal,
+    getProjectProposals,
+    getFreelancerProposals,
+    acceptProposal,
+    rejectProposal
+} = require('../controllers/proposal.controller.js');
 
+const {
+    createReview,
+    getUserReviews
+} = require('../controllers/review.controller.js');
+
+// === RUTAS DE PROYECTOS ===
+router.get('/', authMiddleware, anyAuthenticated, getProjects);
+router.get('/client/:clientId', authMiddleware, validateParamOwnership('clientId'), getProjectsByClient);
+router.get('/freelancer/:freelancerId/proposals', authMiddleware, validateParamOwnership('freelancerId'), getFreelancerProposals);
+router.get('/freelancer/:freelancerId', authMiddleware, validateParamOwnership('freelancerId'), getProjectsByFreelancer);
+router.get('/status/:status', authMiddleware, anyAuthenticated, getProjectsByStatus);
+router.get('/user/:userId/reviews', getUserReviews);
+router.get('/:projectId/proposals', authMiddleware, anyAuthenticated, getProjectProposals);
+router.get('/:id', authMiddleware, anyAuthenticated, getProjectById);
+
+router.post('/', authMiddleware, clientOnly, createProject);
+router.post('/proposals', authMiddleware, freelancerOnly, createProposal);
+router.post('/reviews', authMiddleware, anyAuthenticated, createReview);
+
+router.put('/:id', authMiddleware, clientOnly, updateProject);
+
+router.patch('/proposals/:proposalId/accept', authMiddleware, clientOnly, acceptProposal);
+router.patch('/proposals/:proposalId/reject', authMiddleware, clientOnly, rejectProposal);
+
+router.delete('/:id', authMiddleware, clientOnly, deleteProject);
 
 module.exports = router;

@@ -1,27 +1,31 @@
 import request from 'supertest'
 import { app } from '../../index.js'
 
-// Credenciales de usuarios de test (deben existir en tu base de datos de test)
+// Credenciales e IDs de usuarios seed usados en los tests
 export const TEST_USERS = {
     freelancer: {
-        email: 'freelancer@test.com',
-        password: 'password123',
+        id: 1,
+        email: 'jperez@gmail.com',
+        password: 'donjuan217',
         user_type: 'freelancer'
     },
-    client: {
-        email: 'client@test.com',
-        password: 'password123',
-        user_type: 'client'
+    freelancer_alt: {
+        id: 3,
+        email: 'carlossanchez@icloud.com',
+        password: 'donjuan217',
+        user_type: 'freelancer'
     },
     project_manager: {
-        email: 'manager@test.com',
-        password: 'password123',
+        id: 2,
+        email: 'pablo456@gmail.com',
+        password: 'hola456',
         user_type: 'project_manager'
     },
-    // Usuario existente que mencionas en posts.test.js
-    existing: {
-        email: 'jperez@gmail.com',
-        password: 'donjuan217'
+    project_manager_alt: {
+        id: 4,
+        email: 'lauraramirez@icloud.com',
+        password: 'capi789',
+        user_type: 'project_manager'
     }
 }
 
@@ -30,7 +34,7 @@ export const TEST_USERS = {
  * @param {string} userType - Tipo de usuario: 'freelancer', 'client', 'project_manager', 'existing' 
  * @returns {Promise<string>} Token JWT
  */
-export async function getAuthToken(userType = 'existing') {
+export async function getAuthToken(userType = 'freelancer') {
     const user = TEST_USERS[userType]
 
     if (!user) {
@@ -70,9 +74,14 @@ export function createAuthHeaders(token) {
  * @param {string} userType - Tipo de usuario para obtener token
  * @returns {Promise<Object>} Request con headers de autorización
  */
-export async function authenticateRequest(requestObj, userType = 'existing') {
+export async function authenticateRequest(requestObj, userType = 'freelancer') {
     const token = await getAuthToken(userType)
-    return requestObj.set(createAuthHeaders(token))
+    const configuredRequest = requestObj.set(createAuthHeaders(token))
+    // Retornamos el request envuelto para evitar que await lo resuelva como promesa
+    return {
+        request: configuredRequest,
+        token
+    }
 }
 
 /**

@@ -1,16 +1,32 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { app } from '../../index.js'
-import { getAuthToken, createAuthHeaders, getAllAuthTokens } from '../helpers/auth.js'
+import { authenticateRequest, createAuthHeaders, getAllAuthTokens, TEST_USERS } from '../helpers/auth.js'
 
 describe('Reviews API', () => {
     let tokens = {}
-    let testProjectId
+    let seededProjectId
     let testReviewId
 
     beforeAll(async () => {
-        // Obtener tokens para diferentes tipos de usuarios
         tokens = await getAllAuthTokens()
+
+        if (!tokens.project_manager) {
+            throw new Error('No se pudo obtener token de project_manager para las pruebas de reviews')
+        }
+
+        const projectPayload = {
+            title: 'Proyecto para reviews API test',
+            description: 'Proyecto auxiliar para probar reviews',
+            budget: 1800,
+            deadline: '2025-12-01',
+            category_id: 1,
+            skills_required: ['Node.js', 'Testing']
+        }
+
+    const { request: projectRequest } = await authenticateRequest(request(app).post('/projects'), 'project_manager')
+    const projectResponse = await projectRequest.send(projectPayload).expect(201)
+        seededProjectId = projectResponse.body.data.id
     })
 
     describe('POST /reviews', () => {
@@ -18,9 +34,8 @@ describe('Reviews API', () => {
             const response = await request(app)
                 .post('/reviews')
                 .send({
-                    project_id: 1,
-                    reviewer_id: 1,
-                    reviewed_id: 2,
+                    project_id: seededProjectId,
+                    reviewed_id: TEST_USERS.freelancer_alt.id,
                     rating: 5,
                     comment: 'Excelente trabajo'
                 })
@@ -33,11 +48,10 @@ describe('Reviews API', () => {
         it('debería crear review con usuario autenticado', async () => {
             const response = await request(app)
                 .post('/reviews')
-                .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
+                .set(createAuthHeaders(tokens.project_manager))
                 .send({
-                    project_id: 999999, // ID que probablemente no existe para evitar duplicados
-                    reviewer_id: 1,
-                    reviewed_id: 2,
+                    project_id: seededProjectId,
+                    reviewed_id: TEST_USERS.freelancer_alt.id,
                     rating: 5,
                     comment: 'Review de prueba'
                 })
@@ -82,7 +96,7 @@ describe('Reviews API', () => {
     describe('GET /reviews/project/:projectId', () => {
         it('debería rechazar acceso sin autenticación', async () => {
             const response = await request(app)
-                .get('/reviews/project/1')
+                .get(`/reviews/project/${seededProjectId}`)
                 .expect(401)
 
             expect(response.body).toHaveProperty('success')
@@ -91,8 +105,8 @@ describe('Reviews API', () => {
 
         it('debería obtener reviews de un proyecto con autenticación', async () => {
             const response = await request(app)
-                .get('/reviews/project/1')
-                .set(createAuthHeaders(tokens.existing || tokens.client || tokens.freelancer))
+                .get(`/reviews/project/${seededProjectId}`)
+                .set(createAuthHeaders(tokens.project_manager))
                 .expect(200)
 
             expect(response.body).toHaveProperty('success')

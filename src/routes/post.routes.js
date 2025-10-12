@@ -9,6 +9,8 @@ const {
     createPost,
     getPosts,
     getPostById,
+    getPostsByUserId,
+    getPostsByCategoryId,
     updatePost,
     deletePost
 } = require('../controllers/post.Controllers.js');
@@ -17,6 +19,8 @@ const {
 
 // Rutas públicas
 router.get("/", getPosts);  // Obtener todos los posts (con filtros y paginación)
+router.get("/user/:userId", getPostsByUserId); // Posts por usuario
+router.get("/category/:categoryId", getPostsByCategoryId); // Posts por categoría
 router.get("/:id", getPostById);  // Obtener un post por ID
 
 // Rutas protegidas

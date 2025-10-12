@@ -1,0 +1,41 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Proyecto_Freelance_BackEnd
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js for tooling
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Build Docker images
+        run: docker compose -f Docker-compose.yml build
+
+      - name: Start database service
+        run: docker compose -f Docker-compose.yml up -d db
+
+      - name: Run backend tests inside Docker
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+        run: docker compose -f Docker-compose.yml run --rm backend sh -c "npx prisma generate && npm run test:run"
+
+      - name: Stop services and clean volumes
+        if: always()
+        run: docker compose -f Docker-compose.yml down -v

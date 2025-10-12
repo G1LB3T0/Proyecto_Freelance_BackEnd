@@ -6,10 +6,10 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "NODE_ENV=test vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+  "test": "NODE_ENV=test vitest --config vitest.config.mjs",
+  "test:run": "vitest run --config vitest.config.mjs",
+  "test:coverage": "vitest run --coverage --config vitest.config.mjs",
+  "test:ui": "vitest --ui --config vitest.config.mjs"
   },
   "repository": {
     "type": "git",
