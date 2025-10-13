@@ -7,26 +7,46 @@
 
 ## Test Suites to Implement
 
-### 1. Authentication and Session Management
-- `POST /login/login` should reject invalid credentials and return a JWT for valid users.
-- `GET /login/verify` should confirm tokens signed with the current secret while rejecting forged tokens.
-- `POST /login/refresh` should issue a new token with the same claims as the original session.
-- `POST /login/logout` should respond successfully and instruct clients to delete stored tokens.
+### 1. Autenticación y gestión de sesiones
+| Endpoint | Nombre de la prueba | Descripción |
+| --- | --- | --- |
+| `POST /login/login` | Credenciales válidas devuelven sesión | Usar credenciales sembradas, esperar 200, `success=true`, datos de usuario y token en el cuerpo. |
+| `POST /login/login` | Credenciales inválidas rechazadas | Enviar contraseña equivocada, esperar 401, mensaje de error y sin token. |
+| `GET /login/verify` | Acepta token firmado | Invocar con token de login exitoso, esperar 200 y datos decodificados. |
+| `GET /login/verify` | Rechaza token malformado | Enviar encabezado Bearer con token basura, esperar 401 y que el middleware registre error JWT. |
+| `POST /login/refresh` | Emite token nuevo para sesión activa | Proveer payload válido, esperar token rotado con mismos claims y `iat` posterior. |
+| `POST /login/refresh` | Rechaza token faltante o inválido | Omitir encabezado, esperar 401 y `success=false`. |
+| `POST /login/logout` | Confirma cierre de sesión | Consumir endpoint con token válido, esperar 200 y mensaje que instruya eliminar la sesión local. |
 
-### 2. Role-Based Access Control
-- Middleware should block users missing required `user_type` values.
-- Admin tokens should bypass role restrictions in shared routes.
-- Ownership helpers must deny access when a user attempts to update or delete someone else's resource.
+### 2. Control de acceso basado en roles
+| Componente | Nombre de la prueba | Descripción |
+| --- | --- | --- |
+| Middleware de auth | Bloquea `user_type` faltante | Adjuntar token sin rol requerido, esperar 403 en ruta protegida. |
+| Middleware de auth | Permite bypass de admin | Usar token de admin en endpoint restringido y confirmar 200. |
+| Helper de ownership | Niega actualización ajena | Intentar editar recurso ajeno, esperar 403 con mensaje explicativo. |
+| Helper de ownership | Permite acciones del dueño | Actualizar recurso como propietario válido, esperar 200 y cambios persistidos. |
 
-### 3. CRUD Resources
-Focus on representative modules to minimize runtime while covering patterns shared by others.
-- Posts: create, list, update, and delete by owner; ensure non-owners receive HTTP 403.
-- Projects: validate creation field requirements and status transitions; enforce role and ownership rules.
-- Events: ensure only the owner or admin can modify metadata or remove events.
+### 3. Recursos CRUD
+Enfocarse en módulos representativos para minimizar tiempo de ejecución y cubrir patrones comunes.
 
-### 4. Negative and Resilience Cases
-- Simulate database errors (mocked Prisma calls) and confirm the API returns the expected HTTP 500 envelope.
-- Verify that undefined routes return the standardized 404 payload.
+| Módulo | Nombre de la prueba | Descripción |
+| --- | --- | --- |
+| Posts | Listado de posts | `GET /api/posts` retorna payload paginado con arreglo `posts`. |
+| Posts | Creador publica post | Freelancer autenticado envía payload, esperar 201 con registro persistido. |
+| Posts | Bloqueo a no propietario | Freelancer distinto intenta modificar post, esperar 403. |
+| Posts | Propietario elimina post | Dueño legítimo borra post existente, esperar 200 y mensaje de confirmación. |
+| Projects | Creación requiere campos | Falta de título/descripción/presupuesto debe devolver 400 de validación. |
+| Projects | Creación válida exitosa | Project manager envía payload completo, esperar 201 e ID almacenado. |
+| Projects | Respeto a transiciones de estado | Petición PUT actualiza estado, esperar 200 y valor nuevo. |
+| Projects | Refuerzo de roles | Freelancer entrando a ruta solo de managers recibe 403. |
+| Events | Dueño puede actualizar | Creador modifica metadatos, esperar 200 y payload actualizado. |
+| Events | Bloqueo a borrado ajeno | Usuario distinto intenta borrar evento, esperar 403. |
+
+### 4. Casos negativos y de resiliencia
+| Escenario | Descripción |
+| --- | --- |
+| Manejo de fallos de Prisma | Simular excepción de Prisma, esperar respuesta 500 estandarizada (`success=false`, `message`). |
+| Guardia 404 | Solicitar `/unknown-route`, esperar 404 con `{ error: { mensaje: 'Ruta no encontrada' } }`. |
 
 ## Docker-Based Execution Strategy
 - Use the existing `Docker-compose.yml` to provision Postgres and the backend container.
