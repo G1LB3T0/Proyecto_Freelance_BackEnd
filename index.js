@@ -16,6 +16,7 @@ const eventRoutes = require('./src/routes/event.routes');
 const userRoutes = require('./src/routes/user.routes');
 const configurationRoutes = require('./src/routes/configuration.routes');
 const statsRoutes = require('./src/routes/stats.routes');
+const questionnaireRoutes = require('./src/routes/questionnaire.routes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -79,6 +80,7 @@ app.use('/api/configuration', configurationRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/proposals', proposalRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/questionnaire', questionnaireRoutes);
 
 // Manejo de errores para rutas no encontradas
 app.use((req, res, next) => {

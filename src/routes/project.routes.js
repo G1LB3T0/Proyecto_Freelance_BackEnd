@@ -14,7 +14,10 @@ const {
     getProjectsByStatus,
     createProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    syncProjectToCalendar,
+    getMyProjectEvents,
+    removeProjectEvent
 } = require('../controllers/project.Controllers.js');
 
 // === RUTAS DE PROYECTOS ===
@@ -27,5 +30,9 @@ router.post("/", authMiddleware, clientOnly, createProject);                    
 router.put("/:id", authMiddleware, clientOnly, updateProject);                               // PUT /projects/1 - Actualizar proyecto (validar ownership en controlador)
 router.delete("/:id", authMiddleware, clientOnly, deleteProject);                            // DELETE /projects/1 - Eliminar proyecto (validar ownership en controlador)
 
+// === RUTAS DE SINCRONIZACIÓN CON CALENDARIO ===
+router.post("/:id/sync-calendar", authMiddleware, anyAuthenticated, syncProjectToCalendar);        // POST /projects/1/sync-calendar - Sincronizar proyecto con calendario
+router.get("/calendar/events", authMiddleware, anyAuthenticated, getMyProjectEvents);              // GET /projects/calendar/events - Obtener eventos de proyectos del usuario
+router.delete("/:id/calendar-event", authMiddleware, anyAuthenticated, removeProjectEvent);        // DELETE /projects/1/calendar-event - Remover evento de proyecto
 
 module.exports = router;

@@ -9,24 +9,25 @@ datasource db {
 }
 
 model Login {
-  id                                               Int                 @id @default(autoincrement())
-  username                                         String              @unique @db.VarChar(50)
-  email                                            String              @unique @db.VarChar(100)
-  password                                         String              @db.VarChar(255)
-  user_type                                        String              @db.VarChar(20)
-  name                                             String?             @db.VarChar(100)
-  createdAt                                        DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
+  id                                               Int                               @id @default(autoincrement())
+  username                                         String                            @unique @db.VarChar(50)
+  email                                            String                            @unique @db.VarChar(100)
+  password                                         String                            @db.VarChar(255)
+  user_type                                        String                            @db.VarChar(20)
+  name                                             String?                           @db.VarChar(100)
+  createdAt                                        DateTime?                         @default(now()) @map("created_at") @db.Timestamp(6)
   event                                            event[]
   freelancer_skills                                freelancer_skills[]
   posts                                            posts[]
-  project_project_client_idTologin_credentials     project[]           @relation("project_client_idTologin_credentials")
-  project_project_freelancer_idTologin_credentials project[]           @relation("project_freelancer_idTologin_credentials")
+  project_project_client_idTologin_credentials     project[]                         @relation("project_client_idTologin_credentials")
+  project_project_freelancer_idTologin_credentials project[]                         @relation("project_freelancer_idTologin_credentials")
   project_proposals                                project_proposals[]
-  reviews_reviews_reviewed_idTologin_credentials   reviews[]           @relation("reviews_reviewed_idTologin_credentials")
-  reviews_reviews_reviewer_idTologin_credentials   reviews[]           @relation("reviews_reviewer_idTologin_credentials")
+  reviews_reviews_reviewed_idTologin_credentials   reviews[]                         @relation("reviews_reviewed_idTologin_credentials")
+  reviews_reviews_reviewer_idTologin_credentials   reviews[]                         @relation("reviews_reviewer_idTologin_credentials")
   user_details                                     user_details?
   user_profiles                                    user_profiles?
   notifications                                    notifications[]
+  project_questionnaire_responses                  project_questionnaire_responses[]
 
   @@map("login_credentials")
 }
@@ -133,25 +134,26 @@ model event {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model project {
-  id                Int                 @id @default(autoincrement())
-  client_id         Int
-  freelancer_id     Int?
-  title             String              @db.VarChar(255)
-  description       String
-  budget            Decimal             @db.Decimal(10, 2)
-  deadline          DateTime?           @db.Date
-  status            String?             @default("open") @db.VarChar(50)
-  category_id       Int?
-  skills_required   String[]
-  priority          String?             @default("medium") @db.VarChar(20)
-  completion_date   DateTime?           @db.Date
-  created_at        DateTime?           @default(now()) @db.Timestamp(6)
-  updated_at        DateTime?           @default(now()) @db.Timestamp(6)
-  categories        categories?         @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  client            Login               @relation("project_client_idTologin_credentials", fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  freelancer        Login?              @relation("project_freelancer_idTologin_credentials", fields: [freelancer_id], references: [id], onUpdate: NoAction)
-  project_proposals project_proposals[]
-  reviews           reviews?
+  id                              Int                              @id @default(autoincrement())
+  client_id                       Int
+  freelancer_id                   Int?
+  title                           String                           @db.VarChar(255)
+  description                     String
+  budget                          Decimal                          @db.Decimal(10, 2)
+  deadline                        DateTime?                        @db.Date
+  status                          String?                          @default("open") @db.VarChar(50)
+  category_id                     Int?
+  skills_required                 String[]
+  priority                        String?                          @default("medium") @db.VarChar(20)
+  completion_date                 DateTime?                        @db.Date
+  created_at                      DateTime?                        @default(now()) @db.Timestamp(6)
+  updated_at                      DateTime?                        @default(now()) @db.Timestamp(6)
+  categories                      categories?                      @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  client                          Login                            @relation("project_client_idTologin_credentials", fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  freelancer                      Login?                           @relation("project_freelancer_idTologin_credentials", fields: [freelancer_id], references: [id], onUpdate: NoAction)
+  project_proposals               project_proposals[]
+  reviews                         reviews?
+  project_questionnaire_responses project_questionnaire_responses?
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -214,4 +216,49 @@ model notifications {
   related_type      String?  @db.VarChar(50)
   created_at        DateTime @default(now())
   login_credentials Login    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model project_questionnaire_responses {
+  id         Int     @id @default(autoincrement())
+  project_id Int?    @unique // Opcional al inicio, se asigna después de crear el proyecto
+  user_id    Int // Cliente que llena el cuestionario
+  session_id String? @unique @db.VarChar(255) // Para respuestas temporales antes de crear proyecto
+
+  // Información del proyecto
+  project_type  String? @db.VarChar(100)
+  project_scope String? @db.VarChar(50) // small, medium, large
+  timeline      String? @db.VarChar(50) // urgent, normal, flexible
+  budget_range  String? @db.VarChar(50) // <1k, 1k-5k, 5k-10k, 10k+
+
+  // Detalles técnicos
+  technical_level String?  @db.VarChar(50) // basic, intermediate, advanced
+  preferred_tools String[] // Array de herramientas preferidas
+  design_provided Boolean? @default(false) // ¿Tiene diseños listos?
+  content_ready   Boolean? @default(false) // ¿Tiene el contenido listo?
+
+  // Comunicación y seguimiento
+  communication_frequency String? @db.VarChar(50) // daily, weekly, milestone
+  meeting_preference      String? @db.VarChar(50) // video, chat, email
+  timezone                String? @db.VarChar(100)
+
+  // Requerimientos especiales
+  special_requirements String? // Texto libre para requerimientos especiales
+  target_audience      String? @db.VarChar(255)
+  success_metrics      String? // Cómo medir el éxito del proyecto
+
+  // Referencias y ejemplos
+  inspiration_links   String[] // URLs de referencia
+  competitor_analysis String? // Análisis de competencia
+
+  // Metadatos
+  is_complete           Boolean  @default(false) // ¿Cuestionario completado?
+  completion_percentage Int      @default(0) // Porcentaje de completitud
+  created_at            DateTime @default(now())
+  updated_at            DateTime @default(now())
+
+  // Relaciones
+  project project? @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  user    Login    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("project_questionnaire_responses")
 }

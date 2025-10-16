@@ -18,59 +18,142 @@ const getOverview = async (req, res) => {
         const { userId } = req.query;
 
         if (!userId) {
-            return res.status(400).json({ error: 'userId is required' });
+            return res.status(400).json({
+                success: false,
+                error: 'userId is required'
+            });
         }
 
         const userIdInt = parseInt(userId);
 
         if (isNaN(userIdInt)) {
-            return res.status(400).json({ error: 'userId must be a valid number' });
-        }
-
-        console.log('Getting overview for userId:', userIdInt);
-
-        // Test each query individually
-        let totalProjectsAsFreelancer;
-        try {
-            totalProjectsAsFreelancer = await prisma.project.count({
-                where: {
-                    freelancer_id: userIdInt
-                }
+            return res.status(400).json({
+                success: false,
+                error: 'userId must be a valid number'
             });
-            console.log('Freelancer projects:', totalProjectsAsFreelancer);
-        } catch (error) {
-            console.error('Error in freelancer count:', error);
-            throw error;
         }
 
-        let totalProjectsAsClient;
-        try {
-            totalProjectsAsClient = await prisma.project.count({
+        console.log('🔄 Getting optimized overview for userId:', userIdInt);
+
+        // ✅ OPTIMIZACIÓN: Consultas paralelas consolidadas
+        const [
+            // Proyectos por estado (freelancer y client combinados)
+            projectStats,
+            // Ingresos totales y del mes actual
+            incomeStats,
+            // Ratings y reviews
+            reviewStats
+        ] = await Promise.all([
+            // 1. Estadísticas de proyectos combinadas
+            prisma.project.groupBy({
+                by: ['status'],
                 where: {
-                    client_id: userIdInt
+                    OR: [
+                        { freelancer_id: userIdInt },
+                        { client_id: userIdInt }
+                    ]
+                },
+                _count: {
+                    id: true
+                },
+                _sum: {
+                    budget: true
                 }
-            });
-            console.log('Client projects:', totalProjectsAsClient);
-        } catch (error) {
-            console.error('Error in client count:', error);
-            throw error;
-        }
+            }),
+
+            // 2. Ingresos como freelancer (solo proyectos completados)
+            prisma.project.aggregate({
+                where: {
+                    freelancer_id: userIdInt,
+                    status: 'completed'
+                },
+                _sum: {
+                    budget: true
+                },
+                _count: {
+                    id: true
+                }
+            }),
+
+            // 3. Reviews y rating promedio
+            prisma.reviews.aggregate({
+                where: {
+                    reviewed_id: userIdInt
+                },
+                _avg: {
+                    rating: true
+                },
+                _count: {
+                    id: true
+                }
+            })
+        ]);
+
+        // Procesar resultados de proyectos
+        let totalProjects = 0;
+        let completedProjects = 0;
+        let inProgressProjects = 0;
+        let pendingProjects = 0;
+
+        projectStats.forEach(stat => {
+            const count = stat._count.id;
+            totalProjects += count;
+
+            switch (stat.status) {
+                case 'completed':
+                    completedProjects += count;
+                    break;
+                case 'in_progress':
+                    inProgressProjects += count;
+                    break;
+                case 'pending':
+                    pendingProjects += count;
+                    break;
+            }
+        });
+
+        // Calcular ingresos del mes actual
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const thisMonthIncome = await prisma.project.aggregate({
+            where: {
+                freelancer_id: userIdInt,
+                status: 'completed',
+                completion_date: {
+                    gte: startOfMonth
+                }
+            },
+            _sum: {
+                budget: true
+            }
+        });
 
         const overview = {
-            totalProjects: totalProjectsAsFreelancer + totalProjectsAsClient,
-            completedProjects: 0,
-            inProgressProjects: 0,
-            pendingProjects: 0,
-            totalIncome: 0,
-            thisMonthIncome: 0,
-            averageRating: 0,
-            totalReviews: 0
+            totalProjects,
+            completedProjects,
+            inProgressProjects,
+            pendingProjects,
+            totalIncome: parseFloat(incomeStats._sum.budget || 0),
+            thisMonthIncome: parseFloat(thisMonthIncome._sum.budget || 0),
+            averageRating: parseFloat(reviewStats._avg.rating || 0),
+            totalReviews: reviewStats._count.id || 0
         };
 
-        res.json(overview);
+        console.log('✅ Overview optimizado generado:', overview);
+
+        res.json({
+            success: true,
+            data: overview
+        });
+
     } catch (error) {
-        console.error('Error fetching overview stats:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('❌ Error fetching overview stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };// ========================
 // 2. RENDIMIENTO SEMANAL
@@ -137,40 +220,49 @@ exports.getTaskDistribution = async (req, res) => {
 
         const userIdInt = parseInt(userId);
 
-        // Get project counts by status for both freelancer and client roles
-        const freelancerProjects = await prisma.project.groupBy({
+        // Aplicar filtros de fecha si se proporcionan
+        const dateFilter = {};
+        if (from || to) {
+            dateFilter.created_at = {};
+            if (from) dateFilter.created_at.gte = new Date(from);
+            if (to) dateFilter.created_at.lte = new Date(to);
+        }
+
+        console.log('🔄 Getting optimized task distribution for userId:', userIdInt);
+
+        // ✅ OPTIMIZACIÓN: Una sola consulta consolidada con OR
+        const projectStats = await prisma.project.groupBy({
             by: ['status'],
             where: {
-                freelancer_id: userIdInt
+                OR: [
+                    { freelancer_id: userIdInt },
+                    { client_id: userIdInt }
+                ],
+                ...dateFilter
             },
             _count: {
-                status: true
+                id: true
             }
         });
 
-        const clientProjects = await prisma.project.groupBy({
-            by: ['status'],
-            where: {
-                client_id: userIdInt
-            },
-            _count: {
-                status: true
-            }
-        });
-
-        // Combine counts
+        // Procesar conteos por estado
         const statusCounts = {};
-        [...freelancerProjects, ...clientProjects].forEach(stat => {
-            statusCounts[stat.status] = (statusCounts[stat.status] || 0) + stat._count.status;
+        let totalProjects = 0;
+
+        projectStats.forEach(stat => {
+            const count = stat._count.id;
+            statusCounts[stat.status] = count;
+            totalProjects += count;
         });
 
-        const totalProjects = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
-
-        // Calculate distribution
+        // Normalizar estados (manejar variaciones)
         const completedCount = statusCounts['completed'] || 0;
         const inProgressCount = statusCounts['in_progress'] || 0;
-        const pendingCount = (statusCounts['open'] || 0) + (statusCounts['pending'] || 0);
+        const pendingCount = (statusCounts['open'] || 0) +
+            (statusCounts['pending'] || 0) +
+            (statusCounts['draft'] || 0);
 
+        // Calcular distribución con percentages
         const distribution = [
             {
                 "name": "Completadas",
@@ -192,16 +284,23 @@ exports.getTaskDistribution = async (req, res) => {
             }
         ];
 
+        console.log('✅ Task distribution optimizada:', { totalProjects, distribution });
+
         res.json({
             success: true,
-            data: distribution
+            data: distribution,
+            meta: {
+                totalProjects,
+                dateRange: from || to ? { from, to } : null
+            }
         });
 
     } catch (error) {
-        console.error('Error en getTaskDistribution:', error);
+        console.error('❌ Error en getTaskDistribution:', error);
         res.status(500).json({
             success: false,
-            error: 'Error interno del servidor'
+            error: 'Error interno del servidor',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
@@ -267,62 +366,105 @@ exports.getMonthlyTrend = async (req, res) => {
 
         const userIdInt = parseInt(userId);
         const monthsCount = parseInt(months);
-        const monthlyData = [];
         const now = new Date();
 
-        // Generate data for the last N months
-        for (let i = monthsCount - 1; i >= 0; i--) {
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
-            const monthKey = startOfMonth.toISOString().slice(0, 7); // YYYY-MM
+        // Calcular rango de fechas para las consultas
+        const startDate = new Date(now.getFullYear(), now.getMonth() - monthsCount + 1, 1);
+        const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-            // Get projects completed in this month
-            const completedProjects = await prisma.project.count({
+        console.log('🔄 Getting optimized monthly trend for:', userIdInt, `(${monthsCount} months)`);
+
+        // ✅ OPTIMIZACIÓN: Solo 2 consultas en lugar de N*2 consultas en loop
+        const [completedProjectsData, newProjectsData] = await Promise.all([
+            // 1. Proyectos completados por mes
+            prisma.project.findMany({
                 where: {
                     freelancer_id: userIdInt,
                     status: 'completed',
                     completion_date: {
-                        gte: startOfMonth,
-                        lte: endOfMonth
+                        gte: startDate,
+                        lte: endDate
                     }
+                },
+                select: {
+                    completion_date: true
                 }
-            });
+            }),
 
-            // Get new projects created in this month
-            const newProjects = await prisma.project.count({
+            // 2. Proyectos nuevos por mes (como freelancer o cliente)
+            prisma.project.findMany({
                 where: {
                     OR: [
                         { freelancer_id: userIdInt },
                         { client_id: userIdInt }
                     ],
                     created_at: {
-                        gte: startOfMonth,
-                        lte: endOfMonth
+                        gte: startDate,
+                        lte: endDate
                     }
+                },
+                select: {
+                    created_at: true
                 }
-            });
+            })
+        ]);
 
-            // Calculate velocity (completed/new ratio)
-            const velocity = newProjects > 0 ? Math.round((completedProjects / newProjects) * 100) : 0;
+        // Agrupar datos por mes
+        const monthlyStats = {};
+
+        // Procesar proyectos completados
+        completedProjectsData.forEach(project => {
+            if (project.completion_date) {
+                const monthKey = project.completion_date.toISOString().slice(0, 7); // YYYY-MM
+                if (!monthlyStats[monthKey]) monthlyStats[monthKey] = { completed: 0, newTasks: 0 };
+                monthlyStats[monthKey].completed++;
+            }
+        });
+
+        // Procesar proyectos nuevos
+        newProjectsData.forEach(project => {
+            const monthKey = project.created_at.toISOString().slice(0, 7); // YYYY-MM
+            if (!monthlyStats[monthKey]) monthlyStats[monthKey] = { completed: 0, newTasks: 0 };
+            monthlyStats[monthKey].newTasks++;
+        });
+
+        // Generar array final con todos los meses (incluyendo los vacíos)
+        const monthlyData = [];
+        for (let i = monthsCount - 1; i >= 0; i--) {
+            const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthKey = targetDate.toISOString().slice(0, 7); // YYYY-MM
+
+            const stats = monthlyStats[monthKey] || { completed: 0, newTasks: 0 };
+            const velocity = stats.newTasks > 0 ? Math.round((stats.completed / stats.newTasks) * 100) : 0;
 
             monthlyData.push({
                 month: monthKey,
-                completed: completedProjects,
-                newTasks: newProjects,
+                completed: stats.completed,
+                newTasks: stats.newTasks,
                 velocity: velocity
             });
         }
 
+        console.log('✅ Monthly trend optimizado:', monthlyData.length, 'months');
+
         res.json({
             success: true,
-            data: monthlyData
+            data: monthlyData,
+            meta: {
+                monthsCount,
+                dateRange: {
+                    from: startDate.toISOString().slice(0, 10),
+                    to: endDate.toISOString().slice(0, 10)
+                }
+            }
         });
 
     } catch (error) {
-        console.error('Error en getMonthlyTrend:', error);
+        console.error('❌ Error en getMonthlyTrend:', error);
         res.status(500).json({
             success: false,
-            error: 'Error interno del servidor'
+            error: 'Error interno del servidor',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
