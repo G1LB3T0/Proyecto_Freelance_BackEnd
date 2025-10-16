@@ -185,6 +185,51 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX idx_notifications_user_read_date 
     ON notifications(user_id, read_status, created_at DESC);
 
+-- Tabla de respuestas del cuestionario de proyectos
+CREATE TABLE IF NOT EXISTS project_questionnaire_responses (
+    id SERIAL PRIMARY KEY,
+    project_id INT UNIQUE REFERENCES project(id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
+    session_id VARCHAR(255) UNIQUE, -- Para respuestas temporales antes de crear proyecto
+    
+    -- Información del proyecto
+    project_type VARCHAR(100),
+    project_scope VARCHAR(50) CHECK (project_scope IN ('small', 'medium', 'large')),
+    timeline VARCHAR(50) CHECK (timeline IN ('urgent', 'normal', 'flexible')),
+    budget_range VARCHAR(50) CHECK (budget_range IN ('<1k', '1k-5k', '5k-10k', '10k+')),
+    
+    -- Detalles técnicos
+    technical_level VARCHAR(50) CHECK (technical_level IN ('basic', 'intermediate', 'advanced')),
+    preferred_tools TEXT[], -- Array de herramientas preferidas
+    design_provided BOOLEAN DEFAULT FALSE, -- ¿Tiene diseños listos?
+    content_ready BOOLEAN DEFAULT FALSE, -- ¿Tiene el contenido listo?
+    
+    -- Comunicación y seguimiento
+    communication_frequency VARCHAR(50) CHECK (communication_frequency IN ('daily', 'weekly', 'milestone')),
+    meeting_preference VARCHAR(50) CHECK (meeting_preference IN ('video', 'chat', 'email')),
+    timezone VARCHAR(100),
+    
+    -- Requerimientos especiales
+    special_requirements TEXT, -- Texto libre para requerimientos especiales
+    target_audience VARCHAR(255),
+    success_metrics TEXT, -- Cómo medir el éxito del proyecto
+    
+    -- Referencias y ejemplos
+    inspiration_links TEXT[], -- URLs de referencia
+    competitor_analysis TEXT, -- Análisis de competencia
+    
+    -- Metadatos
+    is_complete BOOLEAN DEFAULT FALSE, -- ¿Cuestionario completado?
+    completion_percentage INTEGER DEFAULT 0 CHECK (completion_percentage >= 0 AND completion_percentage <= 100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices para la tabla de cuestionarios
+CREATE INDEX idx_questionnaire_user_id ON project_questionnaire_responses(user_id);
+CREATE INDEX idx_questionnaire_session_id ON project_questionnaire_responses(session_id);
+CREATE INDEX idx_questionnaire_is_complete ON project_questionnaire_responses(is_complete);
+
 -- ========== INSERTS ==========
 
 -- Insertar usuarios
