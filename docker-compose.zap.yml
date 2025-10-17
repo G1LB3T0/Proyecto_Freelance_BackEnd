@@ -1,0 +1,27 @@
+services:
+  zap-baseline:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    profiles:
+      - security
+    environment:
+      ZAP_TARGET: ${ZAP_TARGET:-http://backend:3000}
+      ZAP_CONFIG: ${ZAP_BASELINE_CONFIG:-zap-baseline.conf}
+      ZAP_BASELINE_EXTRA: ${ZAP_BASELINE_EXTRA:-}
+    volumes:
+      - ./tests/security/zap:/zap/wrk
+    working_dir: /zap/wrk
+    command: >-
+      sh -c "zap-baseline.py -t $$ZAP_TARGET -c $$ZAP_CONFIG -r reports/zap-baseline-report.html -J reports/zap-baseline-report.json -x reports/zap-baseline-report.xml $$ZAP_BASELINE_EXTRA"
+
+  zap-full-scan:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    profiles:
+      - security
+    environment:
+      ZAP_TARGET: ${ZAP_TARGET:-http://backend:3000}
+      ZAP_FULL_EXTRA: ${ZAP_FULL_EXTRA:-}
+    volumes:
+      - ./tests/security/zap:/zap/wrk
+    working_dir: /zap/wrk
+    command: >-
+      sh -c "zap-full-scan.py -t $$ZAP_TARGET -r reports/zap-full-report.html -J reports/zap-full-report.json -x reports/zap-full-report.xml $$ZAP_FULL_EXTRA"

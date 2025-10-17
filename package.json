@@ -6,10 +6,14 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-  "test": "NODE_ENV=test vitest --config vitest.config.mjs",
-  "test:run": "vitest run --config vitest.config.mjs",
-  "test:coverage": "vitest run --coverage --config vitest.config.mjs",
-  "test:ui": "vitest --ui --config vitest.config.mjs"
+    "test": "NODE_ENV=test vitest --config vitest.config.mjs",
+    "test:run": "vitest run --config vitest.config.mjs",
+    "test:coverage": "vitest run --coverage --config vitest.config.mjs",
+    "test:ui": "vitest --ui --config vitest.config.mjs",
+    "security:stack-up": "docker compose -f Docker-compose.yml up -d",
+    "security:zap-baseline": "docker compose -f Docker-compose.yml -f docker-compose.zap.yml run --rm zap-baseline",
+    "security:zap-full": "docker compose -f Docker-compose.yml -f docker-compose.zap.yml run --rm zap-full-scan",
+    "security:stack-down": "docker compose -f Docker-compose.yml down -v"
   },
   "repository": {
     "type": "git",

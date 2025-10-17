@@ -39,3 +39,35 @@ jobs:
       - name: Stop services and clean volumes
         if: always()
         run: docker compose -f Docker-compose.yml down -v
+
+  zap_baseline:
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Proyecto_Freelance_BackEnd
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker compose -f Docker-compose.yml build backend
+
+      - name: Start application stack
+        run: docker compose -f Docker-compose.yml up -d
+
+      - name: Clean previous ZAP reports
+        run: rm -f tests/security/zap/reports/zap-baseline-report.*
+
+      - name: Run OWASP ZAP baseline scan
+        run: docker compose -f Docker-compose.yml -f docker-compose.zap.yml run --rm zap-baseline
+
+      - name: Upload OWASP ZAP reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report
+          path: Proyecto_Freelance_BackEnd/tests/security/zap/reports
+
+      - name: Shutdown stack
+        if: always()
+        run: docker compose -f Docker-compose.yml down -v

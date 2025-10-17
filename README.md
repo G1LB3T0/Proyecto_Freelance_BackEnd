@@ -133,6 +133,11 @@ API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub
 - El esquema Prisma está en `prisma/schema.prisma`.
 - El script de inicialización `init.sql` crea tablas y datos de ejemplo.
 
-## 📜 Licencia
+## � Pruebas de seguridad OWASP ZAP
+
+- Se añadieron scripts Docker para ejecutar escaneos Baseline y Full con OWASP ZAP.
+- Consulta `docs/OWASP_ZAP.md` para ver el paso a paso, personalizaciones y cómo interpretar los reportes.
+
+## �📜 Licencia
 
 ISC © Luis  
