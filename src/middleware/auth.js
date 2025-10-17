@@ -59,7 +59,11 @@ const roleMiddleware = (allowedUserTypes) => {
             });
         }
 
-        if (!allowedUserTypes.includes(req.user.user_type)) {
+        // Normalizar a minúsculas para la comparación
+        const userType = req.user.user_type?.toLowerCase();
+        const allowedTypes = allowedUserTypes.map(type => type.toLowerCase());
+
+        if (!allowedTypes.includes(userType)) {
             return res.status(403).json({
                 success: false,
                 message: 'No tienes permisos para acceder a este recurso'
