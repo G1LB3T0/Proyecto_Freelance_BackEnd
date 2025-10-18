@@ -33,27 +33,36 @@ app.use(express.urlencoded({ extended: true }));
 
 // Manejo de CORS
 app.use((req, res, next) => {
-    const allowedOrigins = [
-        'http://localhost:5173', // Vite dev server (default)
-        'http://localhost:3001', // Tu frontend actual
-        'http://localhost:3000', // Backend mismo
-        'http://localhost:4173', // Vite preview
-        process.env.CORS_ORIGIN
-    ].filter(Boolean);
+        // Orígenes por defecto (desarrollo)
+        const defaultOrigins = [
+            'http://localhost:5173', // Vite dev server (default)
+            'http://localhost:3001', // Tu frontend actual
+            'http://localhost:3000', // Backend mismo
+            'http://localhost:4173'  // Vite preview
+        ];
+        
+        // `CORS_ORIGIN` puede contener una lista separada por comas
+        const envOrigins = (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
+        
+        const allowedOrigins = [...defaultOrigins, ...envOrigins];
 
     const origin = req.headers.origin;
     console.log('🔍 Origin recibido:', origin);
 
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-        console.log('✅ CORS permitido para:', origin);
-    } else {
-        // Para desarrollo, permitir cualquier localhost
-        if (origin && origin.includes('localhost')) {
+        // Indicar que la respuesta puede variar según el Origin (útil si hay caches/proxies)
+        res.header('Vary', 'Origin');
+        
+        if (origin && allowedOrigins.includes(origin)) {
+            res.header('Access-Control-Allow-Origin', origin);
+            console.log('✅ CORS permitido para:', origin);
+        } else if (origin && origin.includes('localhost')) {
+            // Para desarrollo local permitir localhost
             res.header('Access-Control-Allow-Origin', origin);
             console.log('🔧 CORS permitido (localhost):', origin);
+        } else if (origin) {
+            // Origen presente pero no permitido -> log para debugging
+            console.log('⛔ Origen bloqueado por CORS:', origin, ' - allowed:', allowedOrigins);
         }
-    }
 
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
