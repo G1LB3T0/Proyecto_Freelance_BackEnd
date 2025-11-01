@@ -1,4 +1,5 @@
 const prisma = require('../database/db');
+const { Prisma } = require('@prisma/client');
 
 // Crear transacción (income/expense/payout/refund)
 async function createTransaction(req, res) {
@@ -65,29 +66,50 @@ async function getTransactionsByUser(req, res) {
         const userId = Number(req.params.userId);
         const { status, category_id, type, limit = 50, offset = 0 } = req.query;
 
-        const where = { user_id: userId };
-        if (status) where.status = status;
-        if (category_id) where.category_id = Number(category_id);
-        if (type) where.type = type;
+        if (!Number.isInteger(userId) || userId <= 0) {
+            return res.status(400).json({ success: false, message: 'userId requerido' });
+        }
 
-        const transactions = await prisma.transactions.findMany({
-            where,
-            include: {
-                category: true,
-                invoice: true,
-                project: {
-                    select: { id: true, title: true }
-                }
-            },
-            orderBy: { transaction_date: 'desc' },
-            take: Number(limit),
-            skip: Number(offset)
-        });
+        // WHERE dinámico seguro usando Prisma.sql
+        const whereParts = [Prisma.sql`t.user_id = ${userId}`];
+        if (status) whereParts.push(Prisma.sql`t.status = ${status}`);
+        if (category_id) whereParts.push(Prisma.sql`t.category_id = ${Number(category_id)}`);
+        if (type) whereParts.push(Prisma.sql`t.type = ${type}`);
+        const whereSql = Prisma.sql`WHERE ${Prisma.join(whereParts, Prisma.sql` AND `)}`;
 
-        res.json({ success: true, data: transactions });
+        const rows = await prisma.$queryRaw`
+            SELECT
+                t.id,
+                t.type,
+                t.title,
+                t.description,
+                t.amount,
+                t.status,
+                t.transaction_date,
+                t.created_at,
+                COALESCE(c.name, 'Otros') AS category_name
+            FROM transactions t
+            LEFT JOIN transaction_categories c ON t.category_id = c.id
+            ${whereSql}
+            ORDER BY t.transaction_date DESC
+            LIMIT ${Number(limit)} OFFSET ${Number(offset)}
+        `;
+
+        const data = rows.map(r => ({
+            id: r.id,
+            type: r.type,
+            title: r.title,
+            description: r.description,
+            amount: Number(r.amount) || 0,
+            status: r.status,
+            transaction_date: r.transaction_date || r.created_at,
+            category: { name: r.category_name }
+        }));
+
+        return res.json({ success: true, data });
     } catch (error) {
-        console.error('getTransactionsByUser error:', error);
-        res.status(500).json({ success: false, message: 'Error al obtener transacciones' });
+        console.error('getTransactionsByUser error:', { message: error.message, code: error.code, stack: error.stack });
+        return res.status(500).json({ success: false, message: 'Error al obtener transacciones' });
     }
 }
 
@@ -95,26 +117,29 @@ async function getTransactionsByUser(req, res) {
 async function getFinancialDashboard(req, res) {
     try {
         const userId = Number(req.params.userId);
+        if (!Number.isInteger(userId) || userId <= 0) {
+            return res.status(400).json({ success: false, message: 'userId requerido' });
+        }
 
-        // Resumen financiero
+        // Resumen por tipo/estado (sin casts específicos del motor)
         const summary = await prisma.$queryRaw`
             SELECT 
                 type,
                 status,
-                SUM(amount)::numeric(12,2) as total,
-                COUNT(*)::integer as count
+                SUM(amount) AS total,
+                COUNT(*) AS count
             FROM transactions
             WHERE user_id = ${userId}
             GROUP BY type, status
         `;
 
-        // Transacciones por categoría
+        // Agregados por categoría
         const byCategory = await prisma.$queryRaw`
             SELECT 
-                c.name as category_name,
+                c.name AS category_name,
                 c.color,
-                SUM(t.amount)::numeric(12,2) as total,
-                COUNT(t.*)::integer as count
+                SUM(t.amount) AS total,
+                COUNT(t.id) AS count
             FROM transactions t
             LEFT JOIN transaction_categories c ON t.category_id = c.id
             WHERE t.user_id = ${userId}
@@ -125,11 +150,7 @@ async function getFinancialDashboard(req, res) {
         // Facturas pendientes
         const pendingInvoices = await prisma.invoice.findMany({
             where: {
-                transactions: {
-                    some: {
-                        user_id: userId
-                    }
-                },
+                transactions: { some: { user_id: userId } },
                 status: { in: ['pending', 'overdue'] }
             },
             orderBy: { due_date: 'asc' }
@@ -138,28 +159,26 @@ async function getFinancialDashboard(req, res) {
         // Próximo pago (factura más cercana)
         const nextPayment = await prisma.invoice.findFirst({
             where: {
-                transactions: {
-                    some: { user_id: userId }
-                },
+                transactions: { some: { user_id: userId } },
                 status: 'pending',
                 due_date: { gte: new Date() }
             },
             orderBy: { due_date: 'asc' }
         });
 
-        // Calcular totales
+        // Totales
         let totalIncome = 0, totalExpense = 0, pendingAmount = 0;
-        summary.forEach(item => {
-            const amount = parseFloat(item.total);
-            const type = item.type.toLowerCase();
-            if (type === 'income') totalIncome += amount;
-            if (type === 'expense') totalExpense += amount;
+        for (const item of summary) {
+            const amount = Number(item.total) || 0;
+            const t = (item.type || '').toLowerCase();
+            if (t === 'income') totalIncome += amount;
+            if (t === 'expense') totalExpense += amount;
             if (item.status === 'pending') pendingAmount += amount;
-        });
+        }
 
         const balance = totalIncome - totalExpense;
 
-        res.json({
+        return res.json({
             success: true,
             data: {
                 summary: {
@@ -176,8 +195,8 @@ async function getFinancialDashboard(req, res) {
             }
         });
     } catch (error) {
-        console.error('getFinancialDashboard error:', error);
-        res.status(500).json({ success: false, message: 'Error al obtener dashboard financiero' });
+        console.error('getFinancialDashboard error:', { message: error.message, code: error.code, stack: error.stack });
+        return res.status(500).json({ success: false, message: 'Error al obtener dashboard financiero' });
     }
 }
 
@@ -190,7 +209,7 @@ async function createCategory(req, res) {
             return res.status(400).json({ success: false, message: 'El nombre es requerido' });
         }
 
-        const category = await prisma.category.create({
+        const category = await prisma.Category.create({
             data: { name, description, color }
         });
 
@@ -206,18 +225,21 @@ async function createCategory(req, res) {
 
 async function getCategories(req, res) {
     try {
-        const categories = await prisma.category.findMany({
-            include: {
-                _count: {
-                    select: { transactions: true }
-                }
-            },
-            orderBy: { name: 'asc' }
-        });
-        res.json({ success: true, data: categories });
+        const rows = await prisma.$queryRaw`
+            SELECT 
+                c.id,
+                c.name,
+                c.color,
+                COUNT(t.id) AS transactions_count
+            FROM transaction_categories c
+            LEFT JOIN transactions t ON t.category_id = c.id
+            GROUP BY c.id, c.name, c.color
+            ORDER BY c.name ASC
+        `;
+        return res.json({ success: true, data: rows });
     } catch (error) {
-        console.error('getCategories error:', error);
-        res.status(500).json({ success: false, message: 'Error al obtener categorías' });
+        console.error('getCategories error:', { message: error.message, code: error.code, stack: error.stack });
+        return res.status(500).json({ success: false, message: 'Error al obtener categorías' });
     }
 }
 
@@ -285,37 +307,39 @@ async function getInvoices(req, res) {
 async function getBalanceByUser(req, res) {
     try {
         const userId = Number(req.params.userId);
+        if (!Number.isInteger(userId) || userId <= 0) {
+            return res.status(400).json({ success: false, message: 'userId requerido' });
+        }
 
         const result = await prisma.$queryRaw`
             SELECT 
                 type,
                 status,
-                SUM(amount)::numeric(12,2) as total,
-                COUNT(*)::integer as count
+                SUM(amount) AS total,
+                COUNT(*) AS count
             FROM transactions
             WHERE user_id = ${userId}
             GROUP BY type, status
         `;
 
-        // Transformar resultado a balance detallado
         let totalIncome = 0, totalExpense = 0, pendingIncome = 0, pendingExpense = 0;
 
-        result.forEach(r => {
-            const amt = parseFloat(r.total);
-            const type = r.type.toLowerCase();
-            if (type === 'income') {
+        for (const r of result) {
+            const amt = Number(r.total) || 0;
+            const t = (r.type || '').toLowerCase();
+            if (t === 'income') {
                 totalIncome += amt;
                 if (r.status === 'pending') pendingIncome += amt;
             }
-            if (type === 'expense') {
+            if (t === 'expense') {
                 totalExpense += amt;
                 if (r.status === 'pending') pendingExpense += amt;
             }
-        });
+        }
 
         const balance = totalIncome - totalExpense;
 
-        res.json({
+        return res.json({
             success: true,
             data: {
                 balance,
@@ -327,8 +351,8 @@ async function getBalanceByUser(req, res) {
             }
         });
     } catch (error) {
-        console.error('getBalanceByUser error:', error);
-        res.status(500).json({ success: false, message: 'Error al calcular balance' });
+        console.error('getBalanceByUser error:', { message: error.message, code: error.code, stack: error.stack });
+        return res.status(500).json({ success: false, message: 'Error al calcular balance' });
     }
 }
 
