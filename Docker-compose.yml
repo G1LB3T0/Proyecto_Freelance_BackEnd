@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:latest
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: pgadmin
       POSTGRES_PASSWORD: secret
@@ -14,7 +14,7 @@ services:
     command: >
       postgres -c 'max_connections=50' -c 'shared_buffers=128MB' -c 'listen_addresses=*'
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U pgadmin -d freelance_db" ]
+      test: ["CMD-SHELL", "pg_isready -U pgadmin -d freelance_db"]
       interval: 10s
       timeout: 5s
       retries: 5
