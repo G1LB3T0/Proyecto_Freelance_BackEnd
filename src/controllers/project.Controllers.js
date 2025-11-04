@@ -31,6 +31,8 @@ exports.getProjects = async (req, res) => {
         // ✅ OPTIMIZACIÓN: Includes condicionales y selects específicos
         const baseSelect = {
             id: true,
+            client_id: true,
+            freelancer_id: true,
             title: true,
             description: true,
             budget: true,
@@ -414,8 +416,10 @@ exports.createProject = async (req, res) => {
 exports.updateProject = async (req, res) => {
     const { id } = req.params;
     try {
-        // Primero verificar que el proyecto existe y pertenece al usuario (a menos que sea admin)
-        if (req.user.user_type !== 'admin') {
+        // Primero verificar que el proyecto existe y pertenece al usuario
+        // Permitir a 'admin' editar cualquier proyecto; los 'project_manager' deben ser dueños
+        const skipOwnership = req.user.user_type === 'admin';
+        if (!skipOwnership) {
             const existingProject = await prisma.project.findUnique({
                 where: { id: Number(id) },
                 select: { client_id: true }
@@ -437,11 +441,79 @@ exports.updateProject = async (req, res) => {
         }
 
         const data = { ...req.body };
-        if (data.budget) data.budget = parseFloat(data.budget);
-        if (data.deadline) data.deadline = new Date(data.deadline);
-        if (data.category_id) data.category_id = Number(data.category_id);
-        if (data.freelancer_id) data.freelancer_id = Number(data.freelancer_id);
-        if (data.completion_date) data.completion_date = new Date(data.completion_date);
+        // Normalizaciones de tipos
+        if (data.budget !== undefined) {
+            const budgetNum = parseFloat(data.budget);
+            if (Number.isNaN(budgetNum) || budgetNum <= 0) {
+                return res.status(400).json({ success: false, error: 'El presupuesto (budget) debe ser un número positivo' });
+            }
+            data.budget = budgetNum;
+        }
+        if (data.deadline) {
+            const d = new Date(data.deadline);
+            if (isNaN(d.getTime())) {
+                return res.status(400).json({ success: false, error: 'Fecha inválida en deadline (usar formato ISO: YYYY-MM-DD)' });
+            }
+            data.deadline = d;
+        }
+        if (data.category_id !== undefined && data.category_id !== null && data.category_id !== '') {
+            const catId = Number(data.category_id);
+            if (Number.isNaN(catId) || catId <= 0) {
+                return res.status(400).json({ success: false, error: 'category_id debe ser un entero positivo' });
+            }
+            // validar existencia de categoría
+            const categoryExists = await prisma.categories.findUnique({ where: { id: catId } });
+            if (!categoryExists) {
+                return res.status(400).json({ success: false, error: 'La categoría indicada no existe' });
+            }
+            data.category_id = catId;
+        }
+        if (data.freelancer_id) {
+            const fid = Number(data.freelancer_id);
+            if (Number.isNaN(fid) || fid <= 0) {
+                return res.status(400).json({ success: false, error: 'freelancer_id debe ser un entero positivo' });
+            }
+            data.freelancer_id = fid;
+        }
+        if (data.completion_date) {
+            const cd = new Date(data.completion_date);
+            if (isNaN(cd.getTime())) {
+                return res.status(400).json({ success: false, error: 'Fecha inválida en completion_date (usar formato ISO: YYYY-MM-DD)' });
+            }
+            data.completion_date = cd;
+        }
+
+        // Normalización/validación de listas controladas
+        if (data.priority) {
+            const p = String(data.priority).toLowerCase();
+            // Mapear "urgent" a "high" para compatibilidad con UI
+            const normalized = p === 'urgent' ? 'high' : p;
+            const allowedPriorities = ['low', 'medium', 'high'];
+            if (!allowedPriorities.includes(normalized)) {
+                return res.status(400).json({ success: false, error: `priority inválido. Valores permitidos: ${allowedPriorities.join(', ')}` });
+            }
+            data.priority = normalized;
+        }
+
+        if (data.status) {
+            const s = String(data.status).toLowerCase();
+            // Compatibilidad: mapear "closed" a "cancelled"
+            const normalized = s === 'closed' ? 'cancelled' : s;
+            const allowedStatuses = ['open', 'in_progress', 'completed', 'cancelled'];
+            if (!allowedStatuses.includes(normalized)) {
+                return res.status(400).json({ success: false, error: `status inválido. Valores permitidos: ${allowedStatuses.join(', ')}` });
+            }
+            data.status = normalized;
+        }
+
+        // Normalizar skills_required de string a array
+        if (data.skills_required) {
+            if (Array.isArray(data.skills_required)) {
+                data.skills_required = data.skills_required.filter(Boolean).map((s) => String(s).trim()).filter(Boolean);
+            } else if (typeof data.skills_required === 'string') {
+                data.skills_required = data.skills_required.split(',').map((s) => s.trim()).filter(Boolean);
+            }
+        }
 
         // Remover client_id del data para evitar que se pueda cambiar
         delete data.client_id;

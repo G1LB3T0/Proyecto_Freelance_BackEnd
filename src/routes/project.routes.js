@@ -5,7 +5,8 @@ const {
     clientOnly,
     anyAuthenticated,
     validateClientOwnership,
-    validateParamOwnership
+    validateParamOwnership,
+    roleMiddleware
 } = require('../middleware/auth'); const {
     getProjects,
     getProjectById,
@@ -27,7 +28,8 @@ router.get("/client/:clientId", authMiddleware, validateParamOwnership('clientId
 router.get("/freelancer/:freelancerId", authMiddleware, validateParamOwnership('freelancerId'), getProjectsByFreelancer); // GET /projects/freelancer/1 - Proyectos de un freelancer (solo propios o admin)
 router.get("/status/:status", authMiddleware, anyAuthenticated, getProjectsByStatus);              // GET /projects/status/open - Proyectos por estado
 router.post("/", authMiddleware, clientOnly, createProject);                                 // POST /projects - Crear proyecto (automáticamente usa req.user.id)
-router.put("/:id", authMiddleware, clientOnly, updateProject);                               // PUT /projects/1 - Actualizar proyecto (validar ownership en controlador)
+// Solo project_manager y admin pueden editar; ownership se valida en el controlador (PM debe ser dueño)
+router.put("/:id", authMiddleware, roleMiddleware(['project_manager','admin']), updateProject); // PUT /projects/1 - Actualizar proyecto
 router.delete("/:id", authMiddleware, clientOnly, deleteProject);                            // DELETE /projects/1 - Eliminar proyecto (validar ownership en controlador)
 
 // === RUTAS DE SINCRONIZACIÓN CON CALENDARIO ===
