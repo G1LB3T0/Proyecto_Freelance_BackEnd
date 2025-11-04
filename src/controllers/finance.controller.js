@@ -332,6 +332,85 @@ async function getBalanceByUser(req, res) {
     }
 }
 
+// Ingresos mensuales por usuario (para gráficas)
+// GET /api/finance/user/:userId/income/monthly?year=YYYY&status=completed
+async function getMonthlyIncomeByUser(req, res) {
+    try {
+        const userId = Number(req.params.userId);
+        const now = new Date();
+        const year = req.query.year ? Number(req.query.year) : now.getFullYear();
+        const status = req.query.status ? String(req.query.status) : null; // si no se envía, excluimos 'pending'
+
+        if (Number.isNaN(userId)) {
+            return res.status(400).json({ success: false, message: 'userId inválido' });
+        }
+
+        const start = new Date(year, 0, 1);
+        const end = new Date(year + 1, 0, 1);
+
+        let rows;
+        if (status) {
+            rows = await prisma.$queryRaw`
+                SELECT 
+                    date_trunc('month', transaction_date) AS month,
+                    SUM(amount)::numeric(12,2) AS total
+                FROM transactions
+                WHERE user_id = ${userId}
+                  AND type = 'income'
+                  AND status = ${status}
+                  AND transaction_date >= ${start}
+                  AND transaction_date < ${end}
+                GROUP BY 1
+                ORDER BY 1
+            `;
+        } else {
+            rows = await prisma.$queryRaw`
+                SELECT 
+                    date_trunc('month', transaction_date) AS month,
+                    SUM(amount)::numeric(12,2) AS total
+                FROM transactions
+                WHERE user_id = ${userId}
+                  AND type = 'income'
+                  AND status <> 'pending'
+                  AND transaction_date >= ${start}
+                  AND transaction_date < ${end}
+                GROUP BY 1
+                ORDER BY 1
+            `;
+        }
+
+        // Mapear resultados por mes
+        const map = new Map();
+        let totalYear = 0;
+        rows.forEach(r => {
+            const monthIso = new Date(r.month).toISOString().slice(0, 7); // YYYY-MM
+            const amt = parseFloat(r.total);
+            map.set(monthIso, amt);
+            totalYear += amt;
+        });
+
+        // Completar meses faltantes con 0
+        const series = [];
+        for (let m = 0; m < 12; m++) {
+            const d = new Date(year, m, 1);
+            const key = d.toISOString().slice(0, 7); // YYYY-MM
+            series.push({ month: key, total: map.get(key) || 0 });
+        }
+
+        return res.json({
+            success: true,
+            data: {
+                year,
+                series,
+                totalYear
+            }
+        });
+    } catch (error) {
+        console.error('getMonthlyIncomeByUser error:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener ingresos mensuales' });
+    }
+}
+
 module.exports = {
     createTransaction,
     getTransactionsByUser,
@@ -340,5 +419,6 @@ module.exports = {
     createCategory,
     getCategories,
     createInvoice,
-    getInvoices
+    getInvoices,
+    getMonthlyIncomeByUser
 };

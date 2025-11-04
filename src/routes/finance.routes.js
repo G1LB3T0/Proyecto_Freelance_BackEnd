@@ -13,6 +13,9 @@ router.get('/user/:userId/transactions', authMiddleware, anyAuthenticated, finan
 // Obtener balance detallado por usuario
 router.get('/user/:userId/balance', authMiddleware, anyAuthenticated, financeController.getBalanceByUser);
 
+// Ingresos mensuales (para gráficas)
+router.get('/user/:userId/income/monthly', authMiddleware, anyAuthenticated, financeController.getMonthlyIncomeByUser);
+
 // Dashboard financiero completo
 router.get('/user/:userId/dashboard', authMiddleware, anyAuthenticated, financeController.getFinancialDashboard);
 

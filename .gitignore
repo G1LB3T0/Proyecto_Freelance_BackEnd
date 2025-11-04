@@ -5,3 +5,6 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Test scripts
+test_events_docker.sh

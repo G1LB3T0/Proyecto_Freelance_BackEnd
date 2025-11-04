@@ -1,222 +1,210 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// GET /api/events
+function parseBool(value, fallback = false) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value !== 'string') return fallback;
+    return ['true', '1', 'yes'].includes(value.toLowerCase());
+}
+
 const getAllEvents = async (req, res) => {
-  try {
-    const events = await prisma.event.findMany();
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ error: 'Error al obtener eventos' });
-  }
+    try {
+        const isMyEventsRoute = req.route?.path === '/my-events';
+        const includePublic = parseBool(req.query.include_public, !isMyEventsRoute);
+
+        let where = {};
+        if (isMyEventsRoute) {
+            where.user_id = req.user.id;
+        } else {
+            where = includePublic
+                ? { OR: [{ user_id: req.user.id }, { is_public: true }] }
+                : { user_id: req.user.id };
+        }
+
+        const events = await prisma.event.findMany({
+            where,
+            orderBy: [
+                { year: 'asc' },
+                { month: 'asc' },
+                { day: 'asc' }
+            ],
+            include: {
+                login_credentials: { select: { id: true, username: true, user_type: true } }
+            }
+        });
+
+        res.json({ success: true, data: events, count: events.length });
+    } catch (err) {
+        console.error('Error al obtener eventos:', err);
+        res.status(500).json({ success: false, error: 'Error al obtener eventos' });
+    }
 };
 
-// POST /api/events
 const createEvent = async (req, res) => {
-  try {
-    const { title, day, month, year } = req.body;
+    try {
+        const { title, day, month, year, description, location, event_time, category, is_public = false } = req.body;
 
-    // Validaciones básicas
-    if (!title || !day || !month || !year) {
-      return res.status(400).json({
-        error: 'Faltan campos obligatorios: title, day, month, year'
-      });
+        if (!title || !day || !month || !year) {
+            return res.status(400).json({ success: false, error: 'Faltan campos obligatorios: title, day, month, year' });
+        }
+        if (day < 1 || day > 31) return res.status(400).json({ success: false, error: 'El día debe estar entre 1 y 31' });
+        if (month < 1 || month > 12) return res.status(400).json({ success: false, error: 'El mes debe estar entre 1 y 12' });
+
+        const canSetPublic = ['project_manager', 'admin'].includes(req.user.user_type?.toLowerCase?.() || '');
+        const eventIsPublic = Boolean(is_public) && canSetPublic;
+        const eventDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
+        const newEvent = await prisma.event.create({
+            data: {
+                title,
+                day: parseInt(day),
+                month: parseInt(month),
+                year: parseInt(year),
+                description: description || null,
+                location: location || null,
+                event_date: eventDate,
+                event_time: event_time || null,
+                category: category || 'personal',
+                is_public: eventIsPublic,
+                status: 'active',
+                user_id: req.user.id
+            },
+            include: { login_credentials: { select: { id: true, username: true, user_type: true } } }
+        });
+
+        res.status(201).json({ success: true, data: newEvent, message: `Evento creado exitosamente${eventIsPublic ? ' (público)' : ' (privado)'}` });
+    } catch (err) {
+        console.error('Error al crear evento:', err);
+        res.status(400).json({ success: false, error: 'Error al crear evento' });
     }
-
-    if (day < 1 || day > 31) {
-      return res.status(400).json({ error: 'El día debe estar entre 1 y 31' });
-    }
-
-    if (month < 1 || month > 12) {
-      return res.status(400).json({ error: 'El mes debe estar entre 1 y 12' });
-    }
-
-    const newEvent = await prisma.event.create({
-      data: {
-        title,
-        day: parseInt(day),
-        month: parseInt(month),
-        year: parseInt(year),
-        user_id: req.user.id
-      }
-    });
-
-    res.status(201).json(newEvent);
-  } catch (err) {
-    console.error('Error al crear evento:', err);
-    res.status(400).json({ error: 'Error al crear evento: ' + err.message });
-  }
 };
 
-// PUT /api/events/:id
 const updateEvent = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, day, month, year } = req.body;
+    try {
+        const { id } = req.params;
+        const { title, day, month, year, description, location, event_time, category, is_public } = req.body;
 
-    // Validaciones básicas
-    if (day && (day < 1 || day > 31)) {
-      return res.status(400).json({ error: 'El día debe estar entre 1 y 31' });
+        if (day !== undefined) {
+            const d = parseInt(day);
+            if (isNaN(d) || d < 1 || d > 31) return res.status(400).json({ success: false, error: 'El día debe estar entre 1 y 31' });
+        }
+        if (month !== undefined) {
+            const m = parseInt(month);
+            if (isNaN(m) || m < 1 || m > 12) return res.status(400).json({ success: false, error: 'El mes debe estar entre 1 y 12' });
+        }
+
+        const data = {};
+        if (title !== undefined) data.title = title;
+        if (day !== undefined) data.day = parseInt(day);
+        if (month !== undefined) data.month = parseInt(month);
+        if (year !== undefined) data.year = parseInt(year);
+        if (description !== undefined) data.description = description;
+        if (location !== undefined) data.location = location;
+        if (event_time !== undefined) data.event_time = event_time;
+        if (category !== undefined) data.category = category;
+
+        if (is_public !== undefined) {
+            const canSetPublic = ['project_manager', 'admin'].includes(req.user.user_type?.toLowerCase?.() || '');
+            if (canSetPublic) data.is_public = Boolean(is_public);
+        }
+
+        if (data.day !== undefined || data.month !== undefined || data.year !== undefined) {
+            const current = await prisma.event.findUnique({ where: { id: parseInt(id) }, select: { day: true, month: true, year: true } });
+            if (!current) return res.status(404).json({ success: false, error: 'Evento no encontrado' });
+            const newDay = data.day ?? current.day;
+            const newMonth = data.month ?? current.month;
+            const newYear = data.year ?? current.year;
+            data.event_date = new Date(newYear, newMonth - 1, newDay);
+        }
+
+        const updated = await prisma.event.update({ where: { id: parseInt(id) }, data, include: { login_credentials: { select: { id: true, username: true, user_type: true } } } });
+        res.json({ success: true, data: updated, message: 'Evento actualizado exitosamente' });
+    } catch (err) {
+        console.error('Error al actualizar evento:', err);
+        if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Evento no encontrado' });
+        res.status(400).json({ success: false, error: 'Error al actualizar evento' });
     }
-
-    if (month && (month < 1 || month > 12)) {
-      return res.status(400).json({ error: 'El mes debe estar entre 1 y 12' });
-    }
-
-    const dataToUpdate = {};
-    if (title) dataToUpdate.title = title;
-    if (day) dataToUpdate.day = parseInt(day);
-    if (month) dataToUpdate.month = parseInt(month);
-    if (year) dataToUpdate.year = parseInt(year);
-
-    const updatedEvent = await prisma.event.update({
-      where: { id: parseInt(id) },
-      data: dataToUpdate
-    });
-
-    res.json(updatedEvent);
-  } catch (err) {
-    console.error('Error al actualizar evento:', err);
-    if (err.code === 'P2025') {
-      res.status(404).json({ error: 'Evento no encontrado' });
-    } else {
-      res.status(400).json({ error: 'Error al actualizar evento: ' + err.message });
-    }
-  }
 };
 
 const getUpcomingEvents = async (req, res) => {
-  try {
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1;
-    const currentDay = currentDate.getDate();
+    try {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = now.getMonth() + 1;
+        const d = now.getDate();
 
-    // Obtener eventos próximos (desde hoy en adelante)
-    const upcomingEvents = await prisma.event.findMany({
-      where: {
-        OR: [
-          // Eventos del año siguiente o posterior
-          { year: { gt: currentYear } },
-          // Eventos del mismo año pero meses futuros
-          {
+        const where = {
             AND: [
-              { year: currentYear },
-              { month: { gt: currentMonth } }
+                { OR: [{ user_id: req.user.id }, { is_public: true }] },
+                {
+                    OR: [
+                        { year: { gt: y } },
+                        { AND: [{ year: y }, { month: { gt: m } }] },
+                        { AND: [{ year: y }, { month: m }, { day: { gte: d } }] }
+                    ]
+                }
             ]
-          },
-          // Eventos del mismo año y mes pero días futuros o igual a hoy
-          {
-            AND: [
-              { year: currentYear },
-              { month: currentMonth },
-              { day: { gte: currentDay } }
-            ]
-          }
-        ]
-      },
-      include: {
-        login_credentials: {
-          select: {
-            name: true,
-            user_details: {
-              select: {
-                first_name: true,
-                last_name: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: [
-        { year: 'asc' },
-        { month: 'asc' },
-        { day: 'asc' }
-      ]
-    });
+        };
 
-    res.json({
-      success: true,
-      count: upcomingEvents.length,
-      data: upcomingEvents
-    });
-  } catch (err) {
-    console.error('Error al obtener eventos próximos:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener eventos próximos'
-    });
-  }
+        const items = await prisma.event.findMany({
+            where,
+            orderBy: [{ year: 'asc' }, { month: 'asc' }, { day: 'asc' }],
+            include: { login_credentials: { select: { id: true, username: true, user_type: true } } },
+            take: 20
+        });
+
+        const withExtras = items.map(ev => {
+            const dt = new Date(ev.year, ev.month - 1, ev.day);
+            const daysLeft = Math.ceil((dt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            return { ...ev, days_left: daysLeft, is_today: daysLeft === 0, is_this_week: daysLeft <= 7 };
+        });
+
+        res.json({ success: true, data: withExtras, count: withExtras.length });
+    } catch (err) {
+        console.error('Error al obtener eventos próximos:', err);
+        res.status(500).json({ success: false, error: 'Error al obtener eventos próximos' });
+    }
 };
 
 const getEventByIdDetailed = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const event = await prisma.event.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        login_credentials: {
-          select: {
-            name: true,
-            email: true,
-            user_details: {
-              select: {
-                first_name: true,
-                last_name: true,
-                    // phone eliminado: el modelo solo expone phone_e164; si se requiere, cambiar a phone_e164
-              }
+    try {
+        const { id } = req.params;
+        const ev = await prisma.event.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                login_credentials: {
+                    select: {
+                        id: true,
+                        username: true,
+                        user_type: true,
+                        user_details: { select: { first_name: true, last_name: true, profile_picture: true } }
+                    }
+                }
             }
-          }
-        }
-      }
-    });
+        });
+        if (!ev) return res.status(404).json({ success: false, error: 'Evento no encontrado' });
 
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        error: 'Evento no encontrado'
-      });
+        const isOwner = ev.user_id === req.user.id;
+        const isAdmin = (req.user.user_type || '').toLowerCase() === 'admin';
+        if (!isOwner && !isAdmin && !ev.is_public) return res.status(403).json({ success: false, error: 'No tienes permisos para ver este evento' });
+
+        res.json({ success: true, data: ev });
+    } catch (err) {
+        console.error('Error al obtener evento detallado:', err);
+        res.status(500).json({ success: false, error: 'Error al obtener evento detallado' });
     }
-
-    res.json({
-      success: true,
-      data: event
-    });
-  } catch (err) {
-    console.error('Error al obtener evento detallado:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener evento detallado'
-    });
-  }
 };
 
-// DELETE /api/events/:id
 const deleteEvent = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    await prisma.event.delete({
-      where: { id: parseInt(id) }
-    });
-
-    res.json({ message: 'Evento eliminado exitosamente' });
-  } catch (err) {
-    console.error('Error al eliminar evento:', err);
-    if (err.code === 'P2025') {
-      res.status(404).json({ error: 'Evento no encontrado' });
-    } else {
-      res.status(400).json({ error: 'Error al eliminar evento: ' + err.message });
+    try {
+        const { id } = req.params;
+        await prisma.event.delete({ where: { id: parseInt(id) } });
+        res.json({ success: true, message: 'Evento eliminado exitosamente' });
+    } catch (err) {
+        console.error('Error al eliminar evento:', err);
+        if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Evento no encontrado' });
+        res.status(400).json({ success: false, error: 'Error al eliminar evento' });
     }
-  }
 };
 
-module.exports = {
-  getAllEvents,
-  createEvent,
-  updateEvent,
-  deleteEvent,
-  getUpcomingEvents,
-  getEventByIdDetailed
-};
+module.exports = { getAllEvents, createEvent, updateEvent, deleteEvent, getUpcomingEvents, getEventByIdDetailed };
