@@ -19,15 +19,16 @@ router.use((req, res, next) => {
 });
 
 // NUEVAS RUTAS ESPECÍFICAS (PRIMERO - ANTES DE TODO)
-router.get('/upcoming', getUpcomingEvents);
+router.get('/upcoming', authMiddleware, anyAuthenticated, getUpcomingEvents);
+router.get('/my-events', authMiddleware, anyAuthenticated, getAllEvents); // Solo mis eventos
 
-// RUTAS EXISTENTES  
-router.get('/', getAllEvents);
+// RUTAS EXISTENTES CON AUTENTICACIÓN
+router.get('/', authMiddleware, anyAuthenticated, getAllEvents); // Requiere autenticación
 router.post('/', authMiddleware, anyAuthenticated, createEvent);
 
 // RUTAS DINÁMICAS (deben ir AL FINAL)
-router.get('/:id', getEventByIdDetailed);            // GET /api/events/:id
-router.get('/:id/detailed', getEventByIdDetailed);   // GET /api/events/:id/detailed (alternativa)
+router.get('/:id', authMiddleware, anyAuthenticated, getEventByIdDetailed);            // GET /api/events/:id
+router.get('/:id/detailed', authMiddleware, anyAuthenticated, getEventByIdDetailed);   // GET /api/events/:id/detailed (alternativa)
 router.put('/:id', authMiddleware, anyAuthenticated, ensureEventOwnerOrAdmin, updateEvent);
 router.delete('/:id', authMiddleware, anyAuthenticated, ensureEventOwnerOrAdmin, deleteEvent);
 
