@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS project (
     category_id INT REFERENCES categories(id),
     skills_required TEXT[],
     priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+    progress INT NOT NULL DEFAULT 0,
     completion_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

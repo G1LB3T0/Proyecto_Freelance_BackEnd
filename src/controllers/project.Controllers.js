@@ -39,7 +39,8 @@ exports.getProjects = async (req, res) => {
             status: true,
             deadline: true,
             created_at: true,
-            priority: true
+            priority: true,
+            progress: true
         };
 
         const includeOptions = includeDetails ? {
@@ -281,7 +282,7 @@ exports.getProjectsByStatus = async (req, res) => {
 // Crear proyecto con integración de cuestionario
 exports.createProject = async (req, res) => {
     try {
-        const { title, description, budget, deadline, category_id, skills_required, priority, questionnaire_session_id } = req.body;
+    const { title, description, budget, deadline, category_id, skills_required, priority, progress, questionnaire_session_id } = req.body;
 
         // Validar autenticación
         if (!req.user?.id) {
@@ -338,6 +339,16 @@ exports.createProject = async (req, res) => {
 
         console.log('🔄 Creando proyecto con integración de cuestionario');
 
+        // Progreso opcional (0-100)
+        let parsedProgress = 0;
+        if (progress !== undefined && progress !== null && progress !== '') {
+            const pr = Number(progress);
+            if (!Number.isInteger(pr) || pr < 0 || pr > 100) {
+                return res.status(400).json({ success: false, error: 'progress debe ser un entero entre 0 y 100' });
+            }
+            parsedProgress = pr;
+        }
+
         // Transacción para crear proyecto y asociar cuestionario
         const result = await prisma.$transaction(async (tx) => {
             // 1. Crear el proyecto
@@ -350,7 +361,8 @@ exports.createProject = async (req, res) => {
                     deadline: parsedDeadline,
                     category_id: parsedCategoryId,
                     skills_required: parsedSkills,
-                    priority: safePriority
+                    priority: safePriority,
+                    progress: parsedProgress
                 },
                 include: {
                     client: { select: { id: true, username: true, email: true } },
@@ -483,6 +495,15 @@ exports.updateProject = async (req, res) => {
             data.completion_date = cd;
         }
 
+        // Progreso (0-100)
+        if (data.progress !== undefined && data.progress !== null && data.progress !== '') {
+            const pr = Number(data.progress);
+            if (!Number.isInteger(pr) || pr < 0 || pr > 100) {
+                return res.status(400).json({ success: false, error: 'progress debe ser un entero entre 0 y 100' });
+            }
+            data.progress = pr;
+        }
+
         // Normalización/validación de listas controladas
         if (data.priority) {
             const p = String(data.priority).toLowerCase();
@@ -504,6 +525,11 @@ exports.updateProject = async (req, res) => {
                 return res.status(400).json({ success: false, error: `status inválido. Valores permitidos: ${allowedStatuses.join(', ')}` });
             }
             data.status = normalized;
+
+            // Si se marca como completado y no se envió progress explícito, forzar 100
+            if (normalized === 'completed' && (data.progress === undefined || data.progress === null)) {
+                data.progress = 100;
+            }
         }
 
         // Normalizar skills_required de string a array
