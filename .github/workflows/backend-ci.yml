@@ -1,0 +1,77 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'prisma/**'
+      - 'init.sql'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'prisma/**'
+      - 'init.sql'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: pgadmin
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: freelance_db
+        options: >-
+          --health-cmd="pg_isready -U pgadmin -d freelance_db" 
+          --health-interval=10s 
+          --health-timeout=5s 
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://pgadmin:secret@localhost:5432/freelance_db
+      NODE_ENV: test
+      JWT_SECRET: test_secret_key
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..20}; do
+            if PGPASSWORD=secret psql -h localhost -U pgadmin -d freelance_db -c 'select 1' >/dev/null 2>&1; then
+              echo "Postgres is up"; break; else echo "Waiting for Postgres..."; sleep 2; fi; done
+
+      - name: Apply init.sql seed
+        run: |
+          PGPASSWORD=secret psql -h localhost -U pgadmin -d freelance_db -f init.sql
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run tests
+        run: npm run test:run
