@@ -186,6 +186,85 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX idx_notifications_user_read_date 
     ON notifications(user_id, read_status, created_at DESC);
 
+-- ========================================
+-- TABLAS DE MÓDULO DE FINANZAS
+-- ========================================
+
+-- Enums para transacciones y facturas
+DO $$ BEGIN
+    CREATE TYPE "TransactionStatus" AS ENUM ('completed', 'pending', 'paid', 'due', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "InvoiceStatus" AS ENUM ('pending', 'paid', 'overdue', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Tabla de categorías de transacciones
+CREATE TABLE IF NOT EXISTS transaction_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    color VARCHAR(7),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de facturas
+CREATE TABLE IF NOT EXISTS invoices (
+    id SERIAL PRIMARY KEY,
+    invoice_number VARCHAR(50) UNIQUE,
+    client_name VARCHAR(255) NOT NULL,
+    client_email VARCHAR(255),
+    amount DECIMAL(12,2) NOT NULL,
+    status "InvoiceStatus" DEFAULT 'pending',
+    issue_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    due_date TIMESTAMP NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de transacciones
+CREATE TABLE IF NOT EXISTS transactions (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    currency VARCHAR(10) DEFAULT 'GTQ',
+    status "TransactionStatus" DEFAULT 'pending',
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    description TEXT,
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id INT NOT NULL REFERENCES login_credentials(id) ON DELETE CASCADE,
+    project_id INT REFERENCES project(id) ON DELETE CASCADE,
+    category_id INT REFERENCES transaction_categories(id),
+    invoice_id INT REFERENCES invoices(id)
+);
+
+-- Tabla de comisiones
+CREATE TABLE IF NOT EXISTS commissions (
+    id SERIAL PRIMARY KEY,
+    transaction_id INT NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+    project_id INT REFERENCES project(id),
+    amount DECIMAL(12,2) NOT NULL,
+    percentage DECIMAL(5,2),
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices para performance del módulo de finanzas
+CREATE INDEX idx_transactions_user_id ON transactions(user_id);
+CREATE INDEX idx_transactions_project_id ON transactions(project_id);
+CREATE INDEX idx_transactions_category_id ON transactions(category_id);
+CREATE INDEX idx_transactions_date ON transactions(transaction_date DESC);
+CREATE INDEX idx_transactions_status ON transactions(status);
+CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_commissions_transaction_id ON commissions(transaction_id);
+
 -- Tabla de respuestas del cuestionario de proyectos
 CREATE TABLE IF NOT EXISTS project_questionnaire_responses (
     id SERIAL PRIMARY KEY,
@@ -386,3 +465,45 @@ INSERT INTO notifications (user_id, message, type, priority, related_id, related
 (2, 'Nuevo mensaje privado de Juan', 'message', 2, 1, 'message'),
 (3, 'Tienes 5 nuevas conexiones pendientes', 'message', 1, NULL, NULL),
 (1, 'Tu post ha recibido 25 likes', 'like', 0, 2, 'post');
+
+-- ====================================
+-- SEED DATA PARA MÓDULO DE FINANZAS
+-- ====================================
+
+-- Categorías de transacciones
+INSERT INTO transaction_categories (name, description, color) VALUES 
+('Desarrollo Web', 'Ingresos por proyectos de desarrollo web', '#3B82F6'),
+('Diseño', 'Ingresos por servicios de diseño', '#8B5CF6'),
+('Consultoría', 'Ingresos por consultoría técnica', '#10B981'),
+('Hosting', 'Gastos de hosting y servidores', '#EF4444'),
+('Software', 'Gastos en licencias de software', '#F59E0B'),
+('Marketing', 'Gastos en publicidad y marketing', '#EC4899');
+
+-- Facturas de ejemplo
+INSERT INTO invoices (invoice_number, client_name, client_email, amount, status, due_date, notes) VALUES 
+('INV-2025-001', 'Tech Solutions SA', 'accounting@techsolutions.com', 1500.00, 'paid', '2025-08-15', 'Desarrollo de página web corporativa'),
+('INV-2025-002', 'StartUp Innovations', 'billing@startup.com', 3000.00, 'pending', '2025-09-30', 'App móvil de delivery - Pago parcial'),
+('INV-2025-003', 'Escuela Digital', 'finanzas@escuela.edu', 2500.00, 'overdue', '2025-08-01', 'Sistema de gestión escolar'),
+('INV-2025-004', 'Marketing Pro', 'admin@marketingpro.com', 800.00, 'paid', '2025-07-30', 'Campaña digital completa');
+
+-- Transacciones de ingresos
+INSERT INTO transactions (title, type, amount, currency, status, transaction_date, description, user_id, project_id, category_id, invoice_id) VALUES 
+('Pago proyecto web corporativa', 'income', 1500.00, 'GTQ', 'completed', '2025-08-10 10:30:00', 'Primer pago del proyecto de página web', 1, 1, 1, 1),
+('Anticipo app delivery', 'income', 1500.00, 'GTQ', 'completed', '2025-07-15 14:00:00', 'Anticipo del 50% para desarrollo de app', 3, 2, 1, 2),
+('Consultoría técnica React', 'income', 500.00, 'GTQ', 'completed', '2025-08-05 16:20:00', 'Sesión de consultoría sobre arquitectura React', 5, NULL, 3, NULL),
+('Diseño de interfaces', 'income', 800.00, 'GTQ', 'paid', '2025-07-28 11:45:00', 'Diseño UI/UX para campaña digital', 2, 4, 2, 4),
+('Pago pendiente app delivery', 'income', 1500.00, 'GTQ', 'pending', '2025-09-30 00:00:00', 'Segundo pago del proyecto app delivery', 3, 2, 1, 2);
+
+-- Transacciones de gastos
+INSERT INTO transactions (title, type, amount, currency, status, transaction_date, description, user_id, category_id) VALUES 
+('Servidor AWS - Agosto', 'expense', 45.00, 'GTQ', 'completed', '2025-08-01 08:00:00', 'Pago mensual de servidor AWS EC2', 1, 4),
+('Licencia Adobe Creative Cloud', 'expense', 54.99, 'GTQ', 'completed', '2025-08-01 09:15:00', 'Suscripción mensual Adobe CC', 2, 5),
+('Google Ads - Campaña Q3', 'expense', 120.00, 'GTQ', 'completed', '2025-07-20 12:00:00', 'Publicidad en Google Ads', 5, 6),
+('Dominio y SSL', 'expense', 25.00, 'GTQ', 'completed', '2025-08-03 10:30:00', 'Renovación anual dominio + certificado SSL', 1, 4);
+
+-- Comisiones de la plataforma
+INSERT INTO commissions (transaction_id, project_id, amount, percentage, status) VALUES 
+(1, 1, 150.00, 10.00, 'completed'),
+(2, 2, 150.00, 10.00, 'completed'),
+(4, 4, 80.00, 10.00, 'completed'),
+(5, 2, 150.00, 10.00, 'pending');
