@@ -14,6 +14,7 @@ async function createTransaction(req, res) {
             transaction_date,
             description,
             category_id,
+            category_name,
             invoice_id,
             metadata
         } = req.body;
@@ -23,6 +24,30 @@ async function createTransaction(req, res) {
                 success: false,
                 message: 'user_id, type, amount y title son requeridos'
             });
+        }
+
+        // Resolver categoría: si no viene category_id pero sí category_name, buscarla o crearla
+        let resolvedCategoryId = category_id || null;
+        if (!resolvedCategoryId && category_name) {
+            try {
+                const existingCategory = await prisma.category.findFirst({
+                    where: { name: category_name }
+                });
+                if (existingCategory) {
+                    resolvedCategoryId = existingCategory.id;
+                } else {
+                    const newCategory = await prisma.category.create({
+                        data: {
+                            name: category_name,
+                            description: null,
+                            color: null
+                        }
+                    });
+                    resolvedCategoryId = newCategory.id;
+                }
+            } catch (catErr) {
+                console.error('Error resolviendo categoría en createTransaction:', catErr);
+            }
         }
 
         const tx = await prisma.transactions.create({
@@ -36,7 +61,7 @@ async function createTransaction(req, res) {
                 status: status || 'pending',
                 transaction_date: transaction_date ? new Date(transaction_date) : new Date(),
                 description,
-                category_id: category_id || null,
+                category_id: resolvedCategoryId,
                 invoice_id: invoice_id || null,
                 metadata: metadata || null
             },
