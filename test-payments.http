@@ -1,0 +1,121 @@
+### Test Payment Endpoints
+### Asegúrate de reemplazar los tokens y IDs con valores reales de tu base de datos
+
+@baseUrl = http://localhost:3000
+@clientToken = TU_TOKEN_DE_CLIENTE_AQUI
+@freelancerToken = TU_TOKEN_DE_FREELANCER_AQUI
+@projectId = 1
+
+### 1. Obtener estado de pago de un proyecto
+GET {{baseUrl}}/api/payments/project/{{projectId}}
+Authorization: Bearer {{clientToken}}
+
+### 2. Depositar fondos en escrow (Cliente)
+POST {{baseUrl}}/api/payments/escrow/deposit
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "project_id": {{projectId}},
+  "amount": 5000.00,
+  "payment_method": "bank_transfer"
+}
+
+### 3. Ver pagos pendientes de liberar (Cliente)
+GET {{baseUrl}}/api/payments/client/pending
+Authorization: Bearer {{clientToken}}
+
+### 4. Liberar pago al freelancer (Cliente)
+POST {{baseUrl}}/api/payments/release
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "project_id": {{projectId}}
+}
+
+### 5. Ver historial de pagos (Freelancer)
+GET {{baseUrl}}/api/payments/freelancer/history
+Authorization: Bearer {{freelancerToken}}
+
+### 6. Ver historial de pagos filtrado por status
+GET {{baseUrl}}/api/payments/freelancer/history?status=completed&limit=10
+Authorization: Bearer {{freelancerToken}}
+
+###############################################
+### FLUJO COMPLETO DE PRUEBA
+###############################################
+
+### Paso 1: Crear un proyecto (Cliente)
+POST {{baseUrl}}/projects
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "title": "Proyecto de Prueba Pagos",
+  "description": "Proyecto para probar sistema de pagos",
+  "budget": 5000,
+  "deadline": "2025-12-31",
+  "category_id": 1,
+  "skills_required": ["JavaScript", "React"],
+  "priority": "medium"
+}
+
+### Paso 2: Freelancer envía propuesta
+POST {{baseUrl}}/proposals
+Authorization: Bearer {{freelancerToken}}
+Content-Type: application/json
+
+{
+  "project_id": 1,
+  "proposed_budget": 5000,
+  "delivery_time": 30,
+  "proposal_text": "Propuesta para probar sistema de pagos",
+  "cover_letter": "Tengo experiencia en este tipo de proyectos"
+}
+
+### Paso 3: Cliente acepta propuesta (esto crea automáticamente el escrow)
+PATCH {{baseUrl}}/proposals/1/accept
+Authorization: Bearer {{clientToken}}
+
+### Paso 4: Verificar que se creó el escrow
+GET {{baseUrl}}/api/payments/project/1
+Authorization: Bearer {{clientToken}}
+
+### Paso 5: Cliente deposita fondos
+POST {{baseUrl}}/api/payments/escrow/deposit
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "project_id": 1,
+  "amount": 5000,
+  "payment_method": "bank_transfer"
+}
+
+### Paso 6: Cambiar proyecto a completado
+PUT {{baseUrl}}/projects/1
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "status": "completed",
+  "progress": 100
+}
+
+### Paso 7: Cliente libera el pago
+POST {{baseUrl}}/api/payments/release
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "project_id": 1
+}
+
+### Paso 8: Freelancer verifica que recibió el pago
+GET {{baseUrl}}/api/payments/freelancer/history
+Authorization: Bearer {{freelancerToken}}
+
+### Paso 9: Verificar estado final del pago
+GET {{baseUrl}}/api/payments/project/1
+Authorization: Bearer {{clientToken}}

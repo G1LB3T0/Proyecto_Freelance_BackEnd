@@ -19,6 +19,7 @@ const statsRoutes = require('./src/routes/stats.routes');
 const questionnaireRoutes = require('./src/routes/questionnaire.routes');
 const financeRoutes = require('./src/routes/finance.routes');
 const settingsRoutes = require('./src/routes/settings.routes');
+const paymentRoutes = require('./src/routes/payment.routes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -94,6 +95,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/questionnaire', questionnaireRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Manejo de errores para rutas no encontradas
 app.use((req, res, next) => {

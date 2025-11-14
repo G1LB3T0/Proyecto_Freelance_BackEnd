@@ -1,5 +1,6 @@
 const prisma = require("../database/db");
 const eventService = require("../services/eventService");
+const { createEscrowPayment } = require("./payment.controller");
 
 // Crear propuesta para proyecto
 exports.createProposal = async (req, res) => {
@@ -277,6 +278,22 @@ exports.acceptProposal = async (req, res) => {
       }),
     ]);
 
+    // Crear notificación de pago en escrow
+    let escrowPayment = null;
+    try {
+      escrowPayment = await createEscrowPayment({
+        proposalId: Number(proposalId),
+        projectId: proposal.project_id,
+        clientId: proposal.project.client_id,
+        freelancerId: proposal.freelancer_id,
+        amount: parseFloat(proposal.proposed_budget)
+      });
+      console.log('Pago en escrow creado:', escrowPayment.id);
+    } catch (paymentError) {
+      console.warn('No se pudo crear el pago en escrow:', paymentError.message);
+      // No fallar la aceptación por error en pago
+    }
+
     // Sincronizar con calendario si el proyecto tiene deadline
     let calendarEvent = null;
     if (proposal.project.deadline) {
@@ -308,11 +325,17 @@ exports.acceptProposal = async (req, res) => {
         projectId: proposal.project.id,
         freelancerId: proposal.freelancer_id,
         calendarSync: calendarEvent ? true : false,
+        paymentCreated: escrowPayment ? true : false,
       },
     };
 
     if (calendarEvent) {
       response.data.eventId = calendarEvent.id;
+    }
+
+    if (escrowPayment) {
+      response.data.escrowTransactionId = escrowPayment.id;
+      response.data.paymentAmount = parseFloat(escrowPayment.amount);
     }
 
     res.json(response);

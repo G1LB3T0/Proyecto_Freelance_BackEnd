@@ -53,6 +53,7 @@ const authMiddleware = async (req, res, next) => {
 const roleMiddleware = (allowedUserTypes) => {
   return (req, res, next) => {
     if (!req.user) {
+      console.error('roleMiddleware: Usuario no autenticado');
       return res.status(401).json({
         success: false,
         message: "Usuario no autenticado",
@@ -63,13 +64,29 @@ const roleMiddleware = (allowedUserTypes) => {
     const userType = req.user.user_type?.toLowerCase();
     const allowedTypes = allowedUserTypes.map((type) => type.toLowerCase());
 
+    console.log('roleMiddleware check:', {
+      userType: req.user.user_type,
+      userTypeNormalized: userType,
+      allowedTypes,
+      isAllowed: allowedTypes.includes(userType)
+    });
+
     if (!allowedTypes.includes(userType)) {
+      console.error('roleMiddleware: Acceso denegado', {
+        userType,
+        allowedTypes
+      });
       return res.status(403).json({
         success: false,
         message: "No tienes permisos para acceder a este recurso",
+        debug: process.env.NODE_ENV === 'development' ? {
+          yourType: userType,
+          allowedTypes
+        } : undefined
       });
     }
 
+    console.log('roleMiddleware: Acceso permitido');
     next();
   };
 };
@@ -77,8 +94,8 @@ const roleMiddleware = (allowedUserTypes) => {
 // Middleware específico para freelancers
 const freelancerOnly = roleMiddleware(["freelancer"]);
 
-// Middleware específico para clientes/project managers
-const clientOnly = roleMiddleware(["client", "project_manager"]);
+// Middleware específico para clientes/project managers/emprendedores
+const clientOnly = roleMiddleware(["client", "project_manager", "emprendedor"]);
 
 // Middleware específico para administradores
 const adminOnly = roleMiddleware(["admin"]);
@@ -88,6 +105,7 @@ const anyAuthenticated = roleMiddleware([
   "freelancer",
   "client",
   "project_manager",
+  "emprendedor",
   "admin",
 ]);
 
@@ -96,7 +114,7 @@ const validateOwnership = (options = {}) => {
   const {
     idField = "client_id",
     source = "body",
-    allowedRoles = ["client", "project_manager", "admin"],
+    allowedRoles = ["client", "project_manager", "emprendedor", "admin"],
     skipForRoles = ["admin"],
   } = options;
 
@@ -156,7 +174,7 @@ const validateOwnership = (options = {}) => {
 // Helpers específicos para validación de ownership
 const validateClientOwnership = validateOwnership({
   idField: "client_id",
-  allowedRoles: ["client", "project_manager", "admin"],
+  allowedRoles: ["client", "project_manager", "emprendedor", "admin"],
 });
 
 const validateFreelancerOwnership = validateOwnership({
@@ -166,7 +184,7 @@ const validateFreelancerOwnership = validateOwnership({
 
 const validateUserOwnership = validateOwnership({
   idField: "user_id",
-  allowedRoles: ["freelancer", "client", "project_manager", "admin"],
+  allowedRoles: ["freelancer", "client", "project_manager", "emprendedor", "admin"],
 });
 
 // Helper para validar ownership en parámetros de URL
@@ -174,7 +192,7 @@ const validateParamOwnership = (paramName = "id") =>
   validateOwnership({
     idField: paramName,
     source: "params",
-    allowedRoles: ["freelancer", "client", "project_manager", "admin"],
+    allowedRoles: ["freelancer", "client", "project_manager", "emprendedor", "admin"],
   });
 
 // === Ownership por recurso (consultando BD) ===
