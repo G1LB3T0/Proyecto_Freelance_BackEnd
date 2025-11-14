@@ -1,5 +1,31 @@
 const prisma = require('../database/db');
 
+// Categorías por defecto para el módulo de finanzas
+const DEFAULT_CATEGORIES = [
+    "Desarrollo Web",
+    "Diseño",
+    "Consultoría",
+    "Marketing",
+    "Software",
+    "Infraestructura",
+    "Otros",
+];
+
+// Asegura que existan las categorías por defecto en la base de datos
+async function ensureDefaultCategories() {
+    try {
+        const count = await prisma.category.count();
+        if (count > 0) return; // ya hay categorías, no hacemos nada
+
+        await prisma.category.createMany({
+            data: DEFAULT_CATEGORIES.map((name) => ({ name })),
+            skipDuplicates: true,
+        });
+    } catch (err) {
+        console.error("Error en ensureDefaultCategories:", err);
+    }
+}
+
 // Crear transacción (income/expense/payout/refund)
 async function createTransaction(req, res) {
     try {
@@ -231,6 +257,9 @@ async function createCategory(req, res) {
 
 async function getCategories(req, res) {
     try {
+        // Asegurar que las categorías por defecto existan en la base de datos
+        await ensureDefaultCategories();
+
         const categories = await prisma.category.findMany({
             include: {
                 _count: {
