@@ -305,10 +305,11 @@ model Invoice {
 
 model commissions {
   id            Int          @id @default(autoincrement())
-  transactionId Int
+  transactionId Int          @map("transaction_id")
   project_id    Int?
   amount        Decimal      @db.Decimal(12, 2)
-  rate          Decimal      @db.Decimal(5, 4)
+  percentage    Decimal      @db.Decimal(5, 4)
+  status        String?      @db.VarChar(50)
   created_at    DateTime     @default(now())
   transaction   transactions @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
