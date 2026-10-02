@@ -1,7 +1,15 @@
 
-# Proyecto Freelance BackEnd
+# Freelance Hub · Backend
 
 API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub, construida con Node.js, Express, Prisma y PostgreSQL. Incluye autenticación básica con JWT y despliegue con Docker.
+
+**[Explorar el frontend](https://github.com/G1LB3T0/Proyecto_Freelance_FrontEnd)** · [Volver a mi perfil](https://github.com/G1LB3T0)
+
+## Recorrido rápido
+
+- Revisa los **endpoints** para conocer los flujos de usuarios y publicaciones.
+- Consulta `prisma/schema.prisma` para explorar el modelo de datos.
+- Usa las instrucciones locales o la configuración Docker para preparar el entorno.
 
 ## 📋 Estructura del proyecto
 
@@ -36,12 +44,11 @@ API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub
 
 1. Clonar el repositorio  
    ```bash
-   git clone https://github.com/G1LB3T0/Proyecto_Freelance.git
+   git clone https://github.com/G1LB3T0/Proyecto_Freelance_BackEnd.git
    ```
-2. Entrar al directorio y cambiar a la rama principal  
+2. Entrar al directorio  
    ```bash
    cd Proyecto_Freelance_BackEnd
-   git checkout main
    ```
 3. Instalar dependencias  
    ```bash
@@ -132,6 +139,15 @@ API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub
 
 - El esquema Prisma está en `prisma/schema.prisma`.
 - El script de inicialización `init.sql` crea tablas y datos de ejemplo.
+
+## Comandos de verificación
+
+El `package.json` declara estos scripts:
+
+```bash
+npm run test:run
+npm run test:coverage
+```
 
 ## 📜 Licencia
 
