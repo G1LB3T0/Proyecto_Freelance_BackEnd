@@ -3,15 +3,15 @@
 
 API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub, construida con Node.js, Express, Prisma y PostgreSQL. Incluye autenticación básica con JWT y despliegue con Docker.
 
-**[Explorar el frontend](https://github.com/G1LB3T0/Proyecto_Freelance_FrontEnd)** · [Volver a mi perfil](https://github.com/G1LB3T0)
+**[Repositorio del frontend](https://github.com/G1LB3T0/Proyecto_Freelance_FrontEnd)** · [Perfil profesional](https://github.com/G1LB3T0)
 
-## Recorrido rápido
+## Documentación principal
 
 - Revisa los **endpoints** para conocer los flujos de usuarios y publicaciones.
 - Consulta `prisma/schema.prisma` para explorar el modelo de datos.
 - Usa las instrucciones locales o la configuración Docker para preparar el entorno.
 
-## 📋 Estructura del proyecto
+## Estructura del proyecto
 
 ```
 .
@@ -34,13 +34,13 @@ API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub
         └── post.routes.js
 ```
 
-## 🚀 Requisitos
+## Requisitos
 
 - Node.js v18+
 - Docker & Docker Compose
 - npm o yarn
 
-## ⚙️ Instalación local
+## Instalación local
 
 1. Clonar el repositorio  
    ```bash
@@ -73,7 +73,7 @@ API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub
    npm run dev
    ```
 
-## 🐳 Uso con Docker
+## Uso con Docker
 
 1. Levantar servicios  
    ```bash
@@ -81,7 +81,7 @@ API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub
    ```
 2. La API estará disponible en `http://localhost:3000`
 
-## 📄 Endpoints
+## Endpoints
 
 ### Usuarios & Autenticación
 
@@ -135,7 +135,7 @@ API REST para gestionar usuarios y publicaciones en un proyecto de Freelance Hub
 - **DELETE /posts/:id**  
   Eliminar un post.
 
-## 🔧 Prisma & Base de datos
+## Prisma & Base de datos
 
 - El esquema Prisma está en `prisma/schema.prisma`.
 - El script de inicialización `init.sql` crea tablas y datos de ejemplo.
@@ -149,6 +149,6 @@ npm run test:run
 npm run test:coverage
 ```
 
-## 📜 Licencia
+## Licencia
 
-ISC © Luis  
+ISC  Luis  
